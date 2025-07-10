@@ -1,97 +1,145 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Geodesic Sphere Control Panel</title>
-    <style>
-        body { margin: 0; overflow: hidden; display: flex; font-family: sans-serif; }
-        #controls {
-            width: 250px;
-            padding: 20px;
-            background: #eee;
-            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-        canvas { flex: 1; display: block; }
-        label { font-weight: bold; }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Geodesic Sphere Depth Visualizer</title>
+  <style>
+    body { margin: 0; overflow: hidden; display: flex; font-family: sans-serif; }
+    #controls {
+      width: 250px;
+      padding: 20px;
+      background: #eee;
+      box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    canvas { flex: 1; display: block; }
+    label { font-weight: bold; }
+  </style>
 </head>
 <body>
-    <div id="controls">
-        <label for="bgColor">Background Color:</label>
-        <input type="color" id="bgColor" value="#ffffff" />
+  <!-- LEFT SIDEBAR CONTROL PANEL -->
+  <div id="controls">
+    <label for="bgColor">Background Color:</label>
+    <input type="color" id="bgColor" value="#ffffff" />
 
-        <label for="gridColor">Grid Line Color:</label>
-        <input type="color" id="gridColor" value="#000000" />
+    <label for="gridColor">Grid Line Color:</label>
+    <input type="color" id="gridColor" value="#000000" />
 
-        <label for="spinToggle">
-            <input type="checkbox" id="spinToggle" checked /> Spin Sphere
-        </label>
-    </div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/controls/OrbitControls.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js">
-        const controls = new THREE.OrbitControls(camera, renderer.domElement);
-            controls.enablePan = false; // Disable panning
-            controls.enableZoom = false; // Optional: lock zoom
-            controls.rotateSpeed = 0.4;  // Tweak responsiveness
-            controls.enableDamping = true;
-            controls.dampingFactor = 0.05;
+    <label for="spinToggle">
+      <input type="checkbox" id="spinToggle" checked /> Spin Sphere
+    </label>
+  </div>
 
-    </script>
-    <script>
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth - 250, window.innerHeight); // subtract sidebar width
-        document.body.appendChild(renderer.domElement);
+  <!-- THREE.JS & ORBITCONTROLS LIBRARIES -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/controls/OrbitControls.min.js"></script>
 
-        // Create geodesic sphere
-        const geometry = new THREE.IcosahedronGeometry(5, 4);
-        let material = new THREE.MeshBasicMaterial({
-            color: document.getElementById('gridColor').value,
-            wireframe: true
-        });
-        let sphere = new THREE.Mesh(geometry, material);
-        scene.add(sphere);
+  <script>
+    // --- INITIAL SCENE SETUP ---
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(45, (window.innerWidth - 250) / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth - 250, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
 
-        camera.position.set(0, 0, 15);
-        camera.lookAt(sphere.position);
+    // --- ORBIT CONTROLS FOR MOUSE ROTATION ---
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enablePan = false;
+    controls.enableZoom = false;
+    controls.rotateSpeed = 0.4;
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
 
-        // Handle resizing
-        window.addEventListener('resize', () => {
-            camera.aspect = (window.innerWidth - 250) / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth - 250, window.innerHeight);
-        });
+    camera.position.set(0, 0, 15);
+    camera.lookAt(new THREE.Vector3(0, 0, 0));
 
-        // Control panel listeners
-        document.getElementById('bgColor').addEventListener('input', e => {
-            scene.background = new THREE.Color(e.target.value);
-        });
+    // --- GLOBAL STATE FOR AUTO-SPIN ---
+    let isSpinning = true;
+    document.getElementById('spinToggle').addEventListener('change', e => {
+      isSpinning = e.target.checked;
+    });
 
-        document.getElementById('gridColor').addEventListener('input', e => {
-            sphere.material.color.set(e.target.value);
-        });
+    // --- CREATE OUTER GRID SPHERE ---
+    let gridColor = document.getElementById('gridColor').value;
+    const outerGeometry = new THREE.IcosahedronGeometry(5, 4);
+    const outerMaterial = new THREE.MeshBasicMaterial({
+      color: gridColor,
+      wireframe: true,
+      transparent: true,
+      opacity: 1.0
+    });
+    const outerSphere = new THREE.Mesh(outerGeometry, outerMaterial);
+    scene.add(outerSphere);
 
-        let isSpinning = true;
-        document.getElementById('spinToggle').addEventListener('change', e => {
-            isSpinning = e.target.checked;
-        });
+    // --- CREATE INNER GRID SPHERE ---
+    const innerGeometry = new THREE.IcosahedronGeometry(4.85, 4);
+    const innerMaterial = new THREE.MeshBasicMaterial({
+      color: gridColor,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.6
+    });
+    const innerSphere = new THREE.Mesh(innerGeometry, innerMaterial);
+    scene.add(innerSphere);
 
-        // Animation loop
-        function animate() {
-            controls.update(); // Required for damping
-            requestAnimationFrame(animate);
-            if (isSpinning) {
-                sphere.rotation.x += 0.001;
-                sphere.rotation.y += 0.002;
-            }
-            renderer.render(scene, camera);
-        }
-        animate();
-    </script>
+    // --- CREATE FOG SHELL (BLEND OF GRID + BACKGROUND COLORS) ---
+    let bgColor = document.getElementById('bgColor').value;
+    const fogColor = new THREE.Color(gridColor).lerp(new THREE.Color(bgColor), 0.5);
+    const fogGeometry = new THREE.SphereGeometry(4.6, 64, 64);
+    const fogMaterial = new THREE.MeshBasicMaterial({
+      color: fogColor,
+      transparent: true,
+      opacity: 0.5
+    });
+    const fogShell = new THREE.Mesh(fogGeometry, fogMaterial);
+    scene.add(fogShell);
+
+    // --- EVENT LISTENERS TO UPDATE COLORS DYNAMICALLY ---
+    document.getElementById('bgColor').addEventListener('input', e => {
+      bgColor = e.target.value;
+      scene.background = new THREE.Color(bgColor);
+
+      // Update fog layer blend
+      const updatedFogColor = new THREE.Color(gridColor).lerp(new THREE.Color(bgColor), 0.5);
+      fogMaterial.color = updatedFogColor;
+    });
+
+    document.getElementById('gridColor').addEventListener('input', e => {
+      gridColor = e.target.value;
+      outerMaterial.color.set(gridColor);
+      innerMaterial.color.set(gridColor);
+
+      // Recalculate fog layer blend
+      const updatedFogColor = new THREE.Color(gridColor).lerp(new THREE.Color(bgColor), 0.5);
+      fogMaterial.color = updatedFogColor;
+    });
+
+    // --- HANDLE WINDOW RESIZE ---
+    window.addEventListener('resize', () => {
+      camera.aspect = (window.innerWidth - 250) / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth - 250, window.innerHeight);
+    });
+
+    // --- MAIN ANIMATION LOOP ---
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+
+      if (isSpinning) {
+        outerSphere.rotation.y += 0.002;
+        innerSphere.rotation.y += 0.002;
+        fogShell.rotation.y += 0.002;
+      }
+
+      renderer.render(scene, camera);
+    }
+
+    scene.background = new THREE.Color(bgColor);
+    animate();
+  </script>
 </body>
 </html>
