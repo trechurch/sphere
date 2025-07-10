@@ -1,67 +1,87 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Working Geodesic Sphere</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Geodesic Sphere Control Panel</title>
     <style>
-        /* Ensures the canvas fills the entire page */
-        body { margin: 0; overflow: hidden; }
-        canvas { display: block; }
+        body { margin: 0; overflow: hidden; display: flex; font-family: sans-serif; }
+        #controls {
+            width: 250px;
+            padding: 20px;
+            background: #eee;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        canvas { flex: 1; display: block; }
+        label { font-weight: bold; }
     </style>
 </head>
 <body>
+    <div id="controls">
+        <label for="bgColor">Background Color:</label>
+        <input type="color" id="bgColor" value="#ffffff" />
+
+        <label for="gridColor">Grid Line Color:</label>
+        <input type="color" id="gridColor" value="#000000" />
+
+        <label for="spinToggle">
+            <input type="checkbox" id="spinToggle" checked /> Spin Sphere
+        </label>
+    </div>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-
     <script>
-        // 1. Set up the basic scene, camera, and renderer
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0xffffff); // Set background to white
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setSize(window.innerWidth - 250, window.innerHeight); // subtract sidebar width
         document.body.appendChild(renderer.domElement);
-        console.log(renderer) 
 
-
-        // 2. Create the geodesic sphere
-        // IcosahedronGeometry(radius, detail)
+        // Create geodesic sphere
         const geometry = new THREE.IcosahedronGeometry(5, 4);
-
-        // 3. Create the material to show the lines
-        const material = new THREE.MeshBasicMaterial({
-            color: 0x000000, // Line color (black)
+        let material = new THREE.MeshBasicMaterial({
+            color: document.getElementById('gridColor').value,
             wireframe: true
         });
-
-        // 4. Create the sphere object and add it to the scene
-        const sphere = new THREE.Mesh(geometry, material);
+        let sphere = new THREE.Mesh(geometry, material);
         scene.add(sphere);
 
-        // 5. Position the camera to view the sphere
-        camera.position.z = 15;
+        camera.position.set(0, 0, 15);
+        camera.lookAt(sphere.position);
 
-        // --- Interactivity & Animation ---
-
-        // Handle window resizing
+        // Handle resizing
         window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.aspect = (window.innerWidth - 250) / window.innerHeight;
             camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setSize(window.innerWidth - 250, window.innerHeight);
         });
 
-        // Animation loop for rotation
+        // Control panel listeners
+        document.getElementById('bgColor').addEventListener('input', e => {
+            scene.background = new THREE.Color(e.target.value);
+        });
+
+        document.getElementById('gridColor').addEventListener('input', e => {
+            sphere.material.color.set(e.target.value);
+        });
+
+        let isSpinning = true;
+        document.getElementById('spinToggle').addEventListener('change', e => {
+            isSpinning = e.target.checked;
+        });
+
+        // Animation loop
         function animate() {
             requestAnimationFrame(animate);
-
-            // Rotate the sphere for a dynamic effect
-            sphere.rotation.x += 0.001;
-            sphere.rotation.y += 0.002;
-
+            if (isSpinning) {
+                sphere.rotation.x += 0.001;
+                sphere.rotation.y += 0.002;
+            }
             renderer.render(scene, camera);
         }
-
-        // Start the animation!
         animate();
     </script>
 </body>
