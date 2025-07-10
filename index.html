@@ -35,7 +35,7 @@
 
   <!-- THREE.JS & ORBITCONTROLS LIBRARIES -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/controls/OrbitControls.min.js"></script>
+  <script src="https://threejs.org/examples/js/controls/OrbitControls.js"></script>
 
   <script>
     // --- INITIAL SCENE SETUP ---
@@ -44,7 +44,6 @@
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth - 250, window.innerHeight);
     document.body.appendChild(renderer.domElement);
-
     // --- ORBIT CONTROLS FOR MOUSE ROTATION ---
     const controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enablePan = false;
