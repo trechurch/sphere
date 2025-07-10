@@ -1,0 +1,70 @@
+Yes, here is the complete, self-contained code for a working model.
+
+You can save this code as a single `.html` file and open it in any modern web browser to see the rotating geodesic sphere.
+
+-----
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geodesic Sphere</title>
+    <style>
+        body { margin: 0; overflow: hidden; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <script>
+        // Set up the 3D scene, camera, and renderer
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // Create the geodesic sphere geometry
+        // The first parameter is the radius; the second is the detail level (subdivisions).
+        const geometry = new THREE.IcosahedronGeometry(5, 4);
+
+        // Create the wireframe material to display the grid lines
+        const material = new THREE.MeshBasicMaterial({
+            color: 0x000000, // Black color for the lines
+            wireframe: true
+        });
+
+        // Create the final sphere object (mesh)
+        const sphere = new THREE.Mesh(geometry, material);
+        scene.add(sphere);
+
+        // Position the camera so we can see the sphere
+        camera.position.z = 15;
+
+        // Handle window resizing
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Animation loop to rotate the sphere
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Rotation speeds
+            sphere.rotation.x += 0.001;
+            sphere.rotation.y += 0.002;
+
+            renderer.render(scene, camera);
+        }
+
+        // Start the animation
+        animate();
+    </script>
+</body>
+</html>
+```
