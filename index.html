@@ -31,8 +31,16 @@
             <input type="checkbox" id="spinToggle" checked /> Spin Sphere
         </label>
     </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/controls/OrbitControls.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js">
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enablePan = false; // Disable panning
+            controls.enableZoom = false; // Optional: lock zoom
+            controls.rotateSpeed = 0.4;  // Tweak responsiveness
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    </script>
     <script>
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -75,6 +83,7 @@
 
         // Animation loop
         function animate() {
+            controls.update(); // Required for damping
             requestAnimationFrame(animate);
             if (isSpinning) {
                 sphere.rotation.x += 0.001;
