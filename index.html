@@ -118,10 +118,10 @@
       fogMaterial.color = updatedFogColor;
     });
 
-    document.getElementById('gridColor').addEventListener('input', e => {
-      gridColor = e.target.value;
-      outerMaterial.color.set(gridColor);
-      innerMaterial.color.set(gridColor);
+      document.getElementById('gridColor').addEventListener('input', e => {
+        gridColor = e.target.value;
+        outerMaterial.color.set(gridColor);
+        innerMaterial.color.set(gridColor);
 
       // Recalculate fog layer blend
       const updatedFogColor = new THREE.Color(gridColor).lerp(new THREE.Color(bgColor), 0.5);
@@ -129,7 +129,7 @@
     });
 
     // --- Create Spherical Cap (like one hex segment) ---
-    const capRadius = 1.0;
+   
     const capSegments = 32;
     
     // φStart, φLength control vertical angle (cap depth)
@@ -155,7 +155,7 @@
       scene.add(cap);
 
       document.getElementById('').addEventListener('input', e => {
-      capRadius = parseFloat(e.target.value);
+       = parseFloat(e.target.value);
       cap.geometry.dispose();
       cap.geometry = new THREE.SphereGeometry(capRadius, 32, 32, 0, Math.PI * 2, 0, Math.PI / 3);
     });
