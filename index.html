@@ -118,6 +118,32 @@
       fogMaterial.color = updatedFogColor;
     });
 
+    // --- Create Spherical Cap (like one hex segment) ---
+    const capRadius = 1.0;
+    const capSegments = 32;
+    
+    // φStart, φLength control vertical angle (cap depth)
+    // θStart, θLength control horizontal angle (cap span)
+    const capGeometry = new THREE.SphereGeometry(capRadius, capSegments, capSegments, 0, Math.PI * 2, 0, Math.PI / 3);
+
+    const capMaterial = new THREE.MeshBasicMaterial({
+      color: 0xff0000, // Cap color for visibility
+      wireframe: false,
+      transparent: true,
+      opacity: 0.7
+    });
+
+    const cap = new THREE.Mesh(capGeometry, capMaterial);
+
+    // Position the cap: spherical offset from center
+    const sphereCenter = new THREE.Vector3(0, 0, 0);
+    const surfaceNormal = new THREE.Vector3(0, 5.2, 0); // Adjust height/direction
+    const offset = surfaceNormal.clone().normalize().multiplyScalar(5.3); // just outside surface
+
+    cap.position.copy(offset);
+    cap.lookAt(sphereCenter); // Make it parallel to surface
+    scene.add(cap);
+    
     // --- HANDLE WINDOW RESIZE ---
     window.addEventListener('resize', () => {
       camera.aspect = (window.innerWidth - 250) / window.innerHeight;
