@@ -151,7 +151,7 @@
     const offset = surfaceNormal.clone().normalize().multiplyScalar(capHeight);
       cap.position.copy(offset);
       cap.lookAt(sphereCenter);
-      cap.rotateZ(Math.PI); // Flip to face outward
+      cap.rotateY(Math.PI); // Flip to face outward
       scene.add(cap);
       
     function updateCap() {
