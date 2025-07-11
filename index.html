@@ -1,4 +1,12 @@
 <!DOCTYPE html>
+   // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
+   // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
+   // ~~~~~~ //                                                                                                                                                         // ~~~~~~ // 
+   // ~~~~~~ //                                                   This is Code Quadrant A                                                                               // ~~~~~~ // 
+   // ~~~~~~ //                                                                                                                                                         // ~~~~~~ //                                                                                                                                                     
+   // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
+   // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
+  <!-- HTML HEAD Module ---------------------------------------------------------------------------------------------------------------->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -20,7 +28,9 @@
   </style>
 </head>
 <body>
-  <!-- LEFT SIDEBAR CONTROL PANEL -->
+    <!-- HTML HEAD Module ends---------------------------------------------------------------------------------------------------------------->
+    <!-- DIV Module -------------------------------------------------------------------------------------------------------------------------->
+                                                                    <!-- LEFT SIDEBAR CONTROL PANEL -->
   <div id="controls">
     <label for="bgColor">Background Color:</label>
     <input type="color" id="bgColor" value="#ffffff" />
@@ -39,44 +49,38 @@
     <input type="number" id="capHeight" value="5.3" min="-10" max="10" step="0.1"/>
     
   </div>
-
-  <!-- THREE.JS & ORBITCONTROLS LIBRARIES -->
+    <!-- DIV Module ends ---------------------------------------------------------------------------------------------------------------------->
+    <!-- SCRIPT Modules ----------------------------------------------------------------------------------------------------------------------->
+    <!-- THREE.JS & ORBITCONTROLS LIBRARIES --------------------------------------------------------------------------------------------------->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/js/controls/OrbitControls.js"></script>
-
-  
-
+    <!-- Visuals Module ------------------------------------------------------------------------------------------------------------------------->
   <script>
-    // --- INITIAL SCENE SETUP ---
+                                                                    // --- INITIAL SCENE SETUP ---
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(45, (window.innerWidth - 250) / window.innerHeight, 0.1, 1000);
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth - 250, window.innerHeight);
     document.body.appendChild(renderer.domElement);
-    // --- ORBIT CONTROLS FOR MOUSE ROTATION ---
+                                                                    // --- ORBIT CONTROLS FOR MOUSE ROTATION ---
     const controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enablePan = false;
     controls.enableZoom = false;
     controls.rotateSpeed = 0.4;
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
-
     camera.position.set(0, 0, 15);
     camera.lookAt(new THREE.Vector3(0, 0, 0));
-
-
-    // --- GLOBAL STATE FOR AUTO-SPIN ---
+                                                                    // --- GLOBAL STATE FOR AUTO-SPIN ---
     let isSpinning = true;
     document.getElementById('spinToggle').addEventListener('change', e => {
-      isSpinning = e.target.checked;
+    isSpinning = e.target.checked;
     });
-
-    // --- get variable values for sphere cap demensions ---
+                                                                    // --- get variable values for sphere cap demensions ---
     let capRadius = parseFloat(document.getElementById('capSize').value);
     let capHeight = parseFloat(document.getElementById('capHeight').value);
     const capSegments = 32;
-
-    // --- CREATE OUTER GRID SPHERE ---
+                                                                    // --- CREATE OUTER GRID SPHERE ---
     let gridColor = document.getElementById('gridColor').value;
     const outerGeometry = new THREE.IcosahedronGeometry(5, 4);
     const outerMaterial = new THREE.MeshBasicMaterial({
@@ -85,10 +89,16 @@
       transparent: true,
       opacity: 1.0
     });
+       // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
+       // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
+       // ~~~~~~ //                                                                                                                                                         // ~~~~~~ // 
+       // ~~~~~~ //                                                   This is Code Quadrant                                                                                 // ~~~~~~ // 
+       // ~~~~~~ //                                                                                                                                                         // ~~~~~~ //                                                                                                                                                     
+       // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
+       // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
     const outerSphere = new THREE.Mesh(outerGeometry, outerMaterial);
     scene.add(outerSphere);
-
-    // --- CREATE INNER GRID SPHERE ---
+                                                                    // --- CREATE INNER GRID SPHERE ---
     const innerGeometry = new THREE.IcosahedronGeometry(4.85, 4);
     const innerMaterial = new THREE.MeshBasicMaterial({
       color: gridColor,
@@ -98,8 +108,7 @@
     });
     const innerSphere = new THREE.Mesh(innerGeometry, innerMaterial);
     scene.add(innerSphere);
-
-    // --- CREATE FOG SHELL (BLEND OF GRID + BACKGROUND COLORS) ---
+                                                                           // --- CREATE FOG SHELL (BLEND OF GRID + BACKGROUND COLORS) ---
     let bgColor = document.getElementById('bgColor').value;
     const fogColor = new THREE.Color(gridColor).lerp(new THREE.Color(bgColor), 0.5);
     const fogGeometry = new THREE.SphereGeometry(4.6, 64, 64);
@@ -110,105 +119,103 @@
     });
     const fogShell = new THREE.Mesh(fogGeometry, fogMaterial);
     scene.add(fogShell);
-
-    
-
-      scene.background = new THREE.Color(bgColor);
-
-      // Update fog layer blend
+    scene.background = new THREE.Color(bgColor);
+                                                                               // --- Update fog layer blend  ---
       const updatedFogColor = new THREE.Color(gridColor).lerp(new THREE.Color(bgColor), 0.5);
       fogMaterial.color = updatedFogColor;
-      
       document.getElementById('bgColor').addEventListener('input', e => {
-  bgColor = e.target.value;
-  scene.background = new THREE.Color(bgColor);
-  const updatedFogColor = new THREE.Color(gridColor).lerp(new THREE.Color(bgColor), 0.5);
-  fogMaterial.color = updatedFogColor;
-});document.getElementById('gridColor').addEventListener('input', e => {
+      bgColor = e.target.value;
+    scene.background = new THREE.Color(bgColor);
+    const updatedFogColor = new THREE.Color(gridColor).lerp(new THREE.Color(bgColor), 0.5);
+    fogMaterial.color = updatedFogColor;
+    });
+    document.getElementById('gridColor').addEventListener('input', e => {
         gridColor = e.target.value;
         outerMaterial.color.set(gridColor);
         innerMaterial.color.set(gridColor);
-
-      // Recalculate fog layer blend
+        // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
+       // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
+       // ~~~~~~ //                                                                                                                                                         // ~~~~~~ // 
+       // ~~~~~~ //                                                   This is Code Quadrant C                                                                               // ~~~~~~ // 
+       // ~~~~~~ //                                                                                                                                                         // ~~~~~~ //                                                                                                                                                     
+       // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
+       // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
+                                                                                // Recalculate fog layer blend
       const updatedFogColor = new THREE.Color(gridColor).lerp(new THREE.Color(bgColor), 0.5);
       fogMaterial.color = updatedFogColor;
     });
+                                                                                // --- Define Outer Radius for curvature matching ---
+    const outerRadius = 5;
 
-    // --- Create Spherical Cap (like one hex segment) ---
-// --- Create Cap Material ---
-const capMaterial = new THREE.MeshBasicMaterial({
-  color: 0xff0000,
-  transparent: true,
-  opacity: 0.7
-});
-
-// --- Calculate initial phiLength (vertical arc sweep) ---
-const outerRadius = 5;
-const phiLength = THREE.MathUtils.clamp(capRadius / outerRadius, 0.05, 0.3);
-
-// --- Build Initial Cap Geometry ---
-const capGeometry = new THREE.SphereGeometry(
-  capRadius,
-  capSegments,
-  capSegments,
-  0,                // thetaStart
-  Math.PI * 2,      // thetaLength
-  0,                // phiStart
-  phiLength         // vertical sweep
-);
-
-// --- Create Cap Mesh ---
-const cap = new THREE.Mesh(capGeometry, capMaterial);
-
-// --- Initial Placement ---
-const sphereCenter = new THREE.Vector3(0, 0, 0);
-const surfaceNormal = new THREE.Vector3(0, capHeight, 0).normalize();
-cap.position.copy(surfaceNormal.clone().multiplyScalar(capHeight));
-cap.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), surfaceNormal);
-scene.add(cap);
-
-
-// Modular update function
-function updateCap() {
-  cap.geometry.dispose();
-
-  const outerRadius = 5; // or get dynamically from outerSphere.geometry.boundingSphere.radius
-  const phiLength = THREE.MathUtils.clamp(capRadius / outerRadius, 0.05, 0.3);
-
-  cap.geometry = new THREE.SphereGeometry(
-    capRadius,
-    capSegments,
-    capSegments,
-    0,                // thetaStart
-    Math.PI * 2,      // thetaLength (full horizontal)
-    0,                // phiStart
-    phiLength         // 🔧 vertical sweep
-  );
-
-  const surfaceNormal = new THREE.Vector3(0, capHeight, 0).normalize();
-  cap.position.copy(surfaceNormal.clone().multiplyScalar(capHeight));
-  cap.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), surfaceNormal);
-}
-
-// Attach listener OUTSIDE the function
-document.getElementById('capHeight').addEventListener('input', e => {
-  capHeight = parseFloat(e.target.value);
-  updateCap();
-});
-    
-    // --- HANDLE WINDOW RESIZE ---
+                                                                                // --- Create Cap Material Once ---
+    const capMaterial = new THREE.MeshBasicMaterial({
+        color: 0xff0000,
+        transparent: true,
+        opacity: 0.7
+    });
+                                                                                // --- Create Initial Cap Geometry ---
+    let phiLength = THREE.MathUtils.clamp(capRadius / outerRadius, 0.05, 0.3);
+    let capGeometry = new THREE.SphereGeometry(
+        capRadius,
+        capSegments,
+        capSegments,
+        0,
+        Math.PI * 2,
+        0,
+        phiLength
+    );
+                                                                                // --- Create Cap Mesh & Position ---
+    const cap = new THREE.Mesh(capGeometry, capMaterial);
+    const surfaceNormal = new THREE.Vector3(0, capHeight, 0).normalize();
+      cap.position.copy(surfaceNormal.clone().multiplyScalar(capHeight));
+      cap.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), surfaceNormal);
+      scene.add(cap);
+                                                                                // --- Modular Update Function ---
+      function updateCap() {
+        capRadius = parseFloat(document.getElementById('capSize').value);
+        capHeight = parseFloat(document.getElementById('capHeight').value);
+        phiLength = THREE.MathUtils.clamp(capRadius / outerRadius, 0.05, 0.3);
+        cap.geometry.dispose();
+        cap.geometry = new THREE.SphereGeometry(
+        capRadius,
+        capSegments,
+        capSegments,
+        0,
+        Math.PI * 2,
+        0,
+        phiLength
+      );
+        const surfaceNormal = new THREE.Vector3(0, capHeight, 0).normalize();
+          cap.position.copy(surfaceNormal.clone().multiplyScalar(capHeight));
+          cap.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), surfaceNormal);
+      }
+                                                                            // --- UI Listeners for Cap Adjustments ---
+      document.getElementById('capHeight').addEventListener('input', e => {
+          capHeight = parseFloat(e.target.value);
+          updateCap();
+      });
+      document.getElementById('capSize').addEventListener('input', e => {
+          capRadius = parseFloat(e.target.value);
+      updateCap();
+      });
+       // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
+       // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
+       // ~~~~~~ //                                                                                                                                                         // ~~~~~~ // 
+       // ~~~~~~ //                                                   This is Code Quadrant D                                                                               // ~~~~~~ // 
+       // ~~~~~~ //                                                                                                                                                         // ~~~~~~ //                                                                                                                                                     
+       // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
+       // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
+                                                                            // --- HANDLE WINDOW RESIZE ---
     window.addEventListener('resize', () => {
       camera.aspect = (window.innerWidth - 250) / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth - 250, window.innerHeight);
       updateCap();
     });
-
-    // --- MAIN ANIMATION LOOP ---
+                                                                            // --- MAIN ANIMATION LOOP ---
     function animate() {
       requestAnimationFrame(animate);
           controls.update();
-
       if (isSpinning) {
           outerSphere.rotation.y += 0.002;
           innerSphere.rotation.y += 0.002;
