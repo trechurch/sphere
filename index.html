@@ -118,7 +118,6 @@
       // Update fog layer blend
       const updatedFogColor = new THREE.Color(gridColor).lerp(new THREE.Color(bgColor), 0.5);
       fogMaterial.color = updatedFogColor;
-    );
 
       document.getElementById('gridColor').addEventListener('input', e => {
         gridColor = e.target.value;
