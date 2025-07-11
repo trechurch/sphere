@@ -148,28 +148,24 @@
     // Initial placement
     const sphereCenter = new THREE.Vector3(0, 0, 0);
     const surfaceNormal = new THREE.Vector3(0, capHeight, 0);
- const surfaceNormal = new THREE.Vector3(0, capHeight, 0).normalize();
-cap.position.copy(surfaceNormal.clone().multiplyScalar(capHeight));
-
-cap.quaternion.setFromUnitVectors(
-  new THREE.Vector3(0, 1, 0), // Cap's original "up" direction
-  surfaceNormal               // Desired "flush" direction
-);
-
-      scene.add(cap);
-      
+    const surfaceNormal = new THREE.Vector3(0, capHeight, 0).normalize();
+      cap.position.copy(surfaceNormal.clone().multiplyScalar(capHeight));
+      cap.quaternion.setFromUnitVectors(
+        new THREE.Vector3(0, 1, 0), // Cap's original "up" direction
+        surfaceNormal               // Desired "flush" direction
+      );
+    scene.add(cap);
     function updateCap() {
         cap.geometry.dispose();
         cap.geometry = new THREE.SphereGeometry(
         capRadius, capSegments, capSegments, 0, Math.PI * 2, 0, Math.PI / 3
       );
-       const surfaceNormal = new THREE.Vector3(0, capHeight, 0).normalize();
-     cap.position.copy(surfaceNormal.clone().multiplyScalar(capHeight));
-
-cap.quaternion.setFromUnitVectors(
-  new THREE.Vector3(0, 1, 0), // Cap's original "up" direction
-  surfaceNormal               // Desired "flush" direction
-);
+      const surfaceNormal = new THREE.Vector3(0, capHeight, 0).normalize();
+      cap.position.copy(surfaceNormal.clone().multiplyScalar(capHeight));
+      cap.quaternion.setFromUnitVectors(
+        new THREE.Vector3(0, 1, 0), // Cap's original "up" direction
+        surfaceNormal               // Desired "flush" direction
+      );        
   
 
       document.getElementById('capHeight').addEventListener('input', e => {
