@@ -151,9 +151,10 @@
     const offset = surfaceNormal.clone().normalize().multiplyScalar(capHeight);
       cap.position.copy(offset);
       cap.lookAt(sphereCenter);
+      cap.rotateX(Math.PI); // Flip to face outward
       scene.add(cap);
 
-    document.getElementById('').addEventListener('input', e => {
+      document.getElementById('').addEventListener('input', e => {
       capRadius = parseFloat(e.target.value);
       cap.geometry.dispose();
       cap.geometry = new THREE.SphereGeometry(capRadius, 32, 32, 0, Math.PI * 2, 0, Math.PI / 3);
