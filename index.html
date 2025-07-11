@@ -163,13 +163,13 @@
         cap.position.copy(offset);
         cap.lookAt(sphereCenter);
         cap.rotateX(Math.PI);
-
+     }
   
 
       document.getElementById('capHeight').addEventListener('input', e => {
-      capHeight = parseFloat(e.target.value);
-      updateCap();
-    });
+        capHeight = parseFloat(e.target.value);
+        updateCap();
+   
 
     });
     
