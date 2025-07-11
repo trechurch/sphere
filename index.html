@@ -111,11 +111,7 @@
     const fogShell = new THREE.Mesh(fogGeometry, fogMaterial);
     scene.add(fogShell);
 
-    // --- EVENT LISTENERS TO UPDATE COLORS DYNAMICALLY ---
-    document.getElementById('capSize').addEventListener('input', e => {
-    capRadius = parseFloat(e.target.value);
-    updateCap();
-  });
+    
 
       scene.background = new THREE.Color(bgColor);
 
@@ -158,12 +154,18 @@
       cap.lookAt(sphereCenter);
       cap.rotateX(Math.PI); // Flip to face outward
       scene.add(cap);
+      
+    function updateCap() {
+        cap.geometry.dispose();
+        cap.geometry = new THREE.SphereGeometry(
+        capRadius, capSegments, capSegments, 0, Math.PI * 2, 0, Math.PI / 3
+      );
+      const offset = new THREE.Vector3(0, capHeight, 0).normalize().multiplyScalar(capHeight);
+        cap.position.copy(offset);
+        cap.lookAt(sphereCenter);
+        cap.rotateX(Math.PI);
 
-      document.getElementById('').addEventListener('input', e => {
-       = parseFloat(e.target.value);
-      cap.geometry.dispose();
-      cap.geometry = new THREE.SphereGeometry(capRadius, 32, 32, 0, Math.PI * 2, 0, Math.PI / 3);
-    });
+  
 
       document.getElementById('capHeight').addEventListener('input', e => {
       capHeight = parseFloat(e.target.value);
@@ -183,30 +185,15 @@
     // --- MAIN ANIMATION LOOP ---
     function animate() {
       requestAnimationFrame(animate);
-      controls.update();
+          controls.update();
 
       if (isSpinning) {
-        outerSphere.rotation.y += 0.002;
-        innerSphere.rotation.y += 0.002;
-        fogShell.rotation.y += 0.002;
+          outerSphere.rotation.y += 0.002;
+          innerSphere.rotation.y += 0.002;
+          fogShell.rotation.y += 0.002;
       }
-      function updateCap() {
-        cap.geometry.dispose();
-        cap.geometry = new THREE.SphereGeometry(
-        capRadius, capSegments, capSegments, 0, Math.PI * 2, 0, Math.PI / 3
-      );
-
-      const offset = new THREE.Vector3(0, capHeight, 0).normalize().multiplyScalar(capHeight);
-        cap.position.copy(offset);
-        cap.lookAt(sphereCenter);
-        cap.rotateX(Math.PI);
-      }
-
-
-
-      renderer.render(scene, camera);
+    renderer.render(scene, camera);
     }
-
     scene.background = new THREE.Color(bgColor);
     animate();
   </script>
