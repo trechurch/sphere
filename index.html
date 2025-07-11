@@ -118,8 +118,13 @@
       // Update fog layer blend
       const updatedFogColor = new THREE.Color(gridColor).lerp(new THREE.Color(bgColor), 0.5);
       fogMaterial.color = updatedFogColor;
-
-      document.getElementById('gridColor').addEventListener('input', e => {
+      
+      document.getElementById('bgColor').addEventListener('input', e => {
+  bgColor = e.target.value;
+  scene.background = new THREE.Color(bgColor);
+  const updatedFogColor = new THREE.Color(gridColor).lerp(new THREE.Color(bgColor), 0.5);
+  fogMaterial.color = updatedFogColor;
+});document.getElementById('gridColor').addEventListener('input', e => {
         gridColor = e.target.value;
         outerMaterial.color.set(gridColor);
         innerMaterial.color.set(gridColor);
@@ -144,8 +149,6 @@
       opacity: 0.7
     });
     const cap = new THREE.Mesh(capGeometry, capMaterial);
-
-  const cap = new THREE.Mesh(capGeometry, capMaterial);
 
 // Initial placement
 const sphereCenter = new THREE.Vector3(0, 0, 0);
