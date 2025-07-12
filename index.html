@@ -205,6 +205,8 @@
      console.log('Cap visible:', cap.visible);          
       document.getElementById('capSize').addEventListener('input', e => {
           capRadius = parseFloat(e.target.value);
+           const debugMarker = new THREE.Mesh(
+debugMarker.position.copy(cap.position);
       updateCap();
       });
        // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
@@ -221,6 +223,12 @@
       renderer.setSize(window.innerWidth - 250, window.innerHeight);
       updateCap();
     });
+
+       const debugMarker = new THREE.Mesh(
+  new THREE.SphereGeometry(0.1, 8, 8),
+  new THREE.MeshBasicMaterial({ color: 0x00ffff })
+);
+scene.add(debugMarker);
                                                                             // --- MAIN ANIMATION LOOP ---
     function animate() {
       requestAnimationFrame(animate);
