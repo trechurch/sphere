@@ -56,7 +56,7 @@
   <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/js/controls/OrbitControls.js"></script>
     <!-- Visuals Module ------------------------------------------------------------------------------------------------------------------------->
   <script>
-                                                                    // --- INITIAL SCENE SETUP ---
+                                                          // --- INITIAL SCENE SETUP ---
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(45, (window.innerWidth - 250) / window.innerHeight, 0.1, 1000);
     const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -198,6 +198,11 @@
           capHeight = parseFloat(e.target.value);
           updateCap();
       });
+       console.log('Cap radius:', capRadius);
+     console.log('Phi length:', phiLength);
+     console.log('Cap position:', cap.position.toArray());
+     console.log('Cap height:', capHeight);
+     console.log('Cap visible:', cap.visible);          
       document.getElementById('capSize').addEventListener('input', e => {
           capRadius = parseFloat(e.target.value);
       updateCap();
