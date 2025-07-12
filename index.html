@@ -205,7 +205,7 @@
      console.log('Cap visible:', cap.visible);          
       document.getElementById('capSize').addEventListener('input', e => {
           capRadius = parseFloat(e.target.value);
-           const debugMarker = new THREE.Mesh(
+           const debugMarker = new THREE.Mesh()
 debugMarker.position.copy(cap.position);
       updateCap();
       });
