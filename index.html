@@ -200,7 +200,7 @@
 
         // --- Surface Anchor ---
         const surfaceNormal = new THREE.Vector3(0, 1, 0); // Points straight up
-        const anchorOffset = height; // Use capHeight purely as offset
+        const anchorOffset = (height - radius); // Use capHeight purely as offset
         cap.position.copy(surfaceNormal.clone().multiplyScalar(outerRadius + anchorOffset));
 
 
@@ -212,12 +212,12 @@
         const directionVector = forward.clone().applyAxisAngle(surfaceNormal, headingRad);
 
         // --- Direction Line Indicator ---
+        const directionAnchor = directionVector.clone().multiplyScalar(radius * 0.9);
         const lineMaterial = new THREE.LineBasicMaterial({ color: 0x00ffff });
-        const points = [
-          new THREE.Vector3(0, 0, 0),
-          directionVector.clone().multiplyScalar(radius * 0.9)
-        ];
-        const lineGeometry = new THREE.BufferGeometry().setFromPoints(points);
+        const lineGeometry = new THREE.BufferGeometry().setFromPoints([
+          new THREE.Vector3(0, 0, 0), // Cap center
+          directionAnchor // Tip of direction
+        ]);
         const headingLine = new THREE.Line(lineGeometry, lineMaterial);
         cap.add(headingLine);
 
