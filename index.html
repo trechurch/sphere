@@ -6,24 +6,43 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Geodesic Sphere Depth Visualizer</title>
   <style>
-    body { margin: 0; overflow: hidden; display: flex; font-family: sans-serif; }
+    body { 
+      font-family: sans-serif; 
+    }
+
     #controls {
       width: 250px;
       padding: 20px;
+      height:100vh;
       background: #eee;
       box-shadow: 2px 0 5px rgba(0,0,0,0.1);
       display: flex;
       flex-direction: column;
       gap: 15px;
+      position:fixed;
+      right:0;
+      margin-left:80vw;
+    } 
+   .menu {
+    display:flex;
+    max-width:100vw;
+   }
+
+    canvas { 
+      flex: 1;
     }
-    canvas { flex: 1; display: block; }
-    label { font-weight: bold; }
+    label { 
+      font-weight: bold; 
+    }
   </style>
 </head>
 <body>
     <!-- HTML HEAD Module ends---------------------------------------------------------------------------------------------------------------->
     <!-- DIV Module -------------------------------------------------------------------------------------------------------------------------->
                                                                     <!-- LEFT SIDEBAR CONTROL PANEL -->
+                                                                     
+  <div class="menu">
+    
   <div id="controls">
     <label for="bgColor">Background Color:</label>
     <input type="color" id="bgColor" value="#ffffff" />
@@ -218,5 +237,6 @@ scene.add(debugMarker);
     scene.background = new THREE.Color(bgColor);
     animate();
   </script>
+  </div>
 </body>
 </html>
