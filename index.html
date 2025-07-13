@@ -64,6 +64,18 @@
       <label for="capHeight">Cap Anchor Y:</label>
       <input type="number" id="capHeight" value="5.3" min="-10" max="10" step="0.1" />
 
+      <label for="capDirection">Cap Direction:</label>
+      <select id="capDirection">
+        <option value="0">North</option>
+        <option value="45">NE</option>
+        <option value="90">East</option>
+        <option value="135">SE</option>
+        <option value="180">South</option>
+        <option value="225">SW</option>
+        <option value="270">West</option>
+        <option value="315">NW</option>
+      </select>
+
     </div>
     <!-- DIV Module ends ---------------------------------------------------------------------------------------------------------------------->
     <!-- SCRIPT Modules ----------------------------------------------------------------------------------------------------------------------->
@@ -169,11 +181,27 @@
         0,
         phiLength
       );
+      
       // --- Create Cap Mesh & Position ---
       const cap = new THREE.Mesh(capGeometry, capMaterial);
       const surfaceNormal = new THREE.Vector3(0, capHeight, 0).normalize();
       const anchorY = outerRadius + capHeight; // capHeight becomes surface offset
-      cap.position.copy(surfaceNormal.clone().multiplyScalar(anchorY)); 
+      cap.position.copy(surfaceNormal.clone().multiplyScalar(anchorY));
+
+      // --- SPINNING STATE ---  
+      const degrees = parseFloat(document.getElementById('capDirection').value);
+      const radians = THREE.MathUtils.degToRad(degrees);
+      const directionVector = new THREE.Vector3(Math.sin(radians), 0, Math.cos(radians)).normalize();
+
+      // --- Create Direction Vector ---
+      const dirGeometry = new THREE.ConeGeometry(0.2, 0.5, 16);
+      const dirMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+      const dirMarker = new THREE.Mesh(dirGeometry, dirMaterial);
+
+      dirMarker.position.copy(directionVector.clone().multiplyScalar(capRadius));
+      dirMarker.lookAt(new THREE.Vector3(0, 0, 0));
+      cap.add(dirMarker); // Attach to cap
+
       // Align cap to surface normal
       cap.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), surfaceNormal);
       console.log('Cap created at:', cap.position.toArray());
