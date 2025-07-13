@@ -79,7 +79,7 @@
     </div>
     <!-- DIV Module ends -------------------------------------------------------------------------------------------->
     <!---  ----------------------------------------------SCRIPT Modules --------------------------------------------->
-   
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/js/controls/OrbitControls.js"></script>
     <script>
@@ -112,29 +112,34 @@
       let capRadius = parseFloat(document.getElementById('capSize').value);
       let capHeight = parseFloat(document.getElementById('capHeight').value);
       const capSegments = 32;
+      const gridColor = document.getElementById('gridColor').value;
 
-      // --- CREATE OUTER GRID SPHERE ---
-      let gridColor = document.getElementById('gridColor').value;
-      const outerGeometry = new THREE.IcosahedronGeometry(5, 4);
-      const outerMaterial = new THREE.MeshBasicMaterial({
-        color: gridColor,
-        wireframe: true,
-        transparent: true,
-        opacity: 1.0
-      });
-   
-      const outerSphere = new THREE.Mesh(outerGeometry, outerMaterial);
-   
+      // --- Create Grid Sphere Material Factory ---
+      function createGridMaterial(opacity) {
+        return new THREE.MeshBasicMaterial({
+          color: gridColor,
+          wireframe: true,
+          transparent: true,
+          opacity: opacity
+        });
+      }
+
+      // --- Create Outer Grid Sphere ---
+      const outerRadius = 5;
+      const outerSphere = new THREE.Mesh(
+        new THREE.IcosahedronGeometry(outerRadius, 4),
+        createGridMaterial(1.0)
+      );
       scene.add(outerSphere);
-      // --- CREATE INNER GRID SPHERE ---
-      const innerGeometry = new THREE.IcosahedronGeometry(4.85, 4);
-      const innerMaterial = new THREE.MeshBasicMaterial({
-        color: gridColor,
-        wireframe: true,
-        transparent: true,
-        opacity: 0.6
-      });
-     
+
+      // --- Create Inner Grid Sphere ---
+      const innerSphereRadius = outerRadius - 0.15;
+      innerSphere = new THREE.Mesh(
+        new THREE.IcosahedronGeometry(innerSphereRadius, 4),
+        createGridMaterial(0.6)
+      );
+      scene.add(innerSphere);
+
 
       // --- CREATE FOG SHELL (BLEND OF GRID + BACKGROUND COLORS) ---
       let bgColor = document.getElementById('bgColor').value;
