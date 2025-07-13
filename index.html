@@ -32,6 +32,7 @@
 
     canvas {
       flex: 1;
+      overflow: hidden
     }
 
     label {
@@ -111,8 +112,8 @@
       // --- set initial scaling factors for cap size and height --- 
       let capSizeScale = 4;
       let capHeightScale = 2;
-      const maxCapRadius = outerRadius * 0.75;
-      const radiusClamped = Math.min(radius, maxCapRadius);
+      const outerRadius = 5;
+
 
       // --- get variable values for sphere cap demensions ---
       let capRadius = parseFloat(document.getElementById('capSize').value);
@@ -131,7 +132,7 @@
       }
 
       // --- Create Outer Grid Sphere ---
-      const outerRadius = 5;
+
       const outerSphere = new THREE.Mesh(
         new THREE.IcosahedronGeometry(outerRadius, 4),
         createGridMaterial(1.0)
@@ -163,13 +164,6 @@
       const updatedFogColor = new THREE.Color(gridColor).lerp(new THREE.Color(bgColor), 0.5);
       fogMaterial.color = updatedFogColor;
 
-      const wireMaterial = new THREE.MeshBasicMaterial({
-        color: 0x00ffff,
-        wireframe: true,
-        transparent: true,
-        opacity: 0.3
-      });
-      cap.add(new THREE.Mesh(capGeometry.clone(), wireMaterial));
 
       // --- SCALE MAPPING LOGIC ---
       function getScaleMultiplier(level) {
@@ -229,9 +223,12 @@
 
       // --- Build Cap Function ---
       function createDirectionalCap({ radius, height, headingDeg }) {
+        const maxCapRadius = outerRadius * 0.75;
+        const radiusClamped = Math.min(radius, maxCapRadius);
         const curvedRadius = Math.min(radius, outerRadius);
         const phiLength = THREE.MathUtils.clamp(curvedRadius / outerRadius, 0.05, 0.3);
         const capSegments = 32;
+
 
         // --- Geometry & Material ---
         const capGeometry = new THREE.SphereGeometry(
@@ -251,6 +248,13 @@
         const anchorOffset = (height - radius); // Use capHeight purely as offset
         cap.position.copy(surfaceNormal.clone().multiplyScalar(outerRadius + anchorOffset));
 
+        const wireMaterial = new THREE.MeshBasicMaterial({
+          color: 0x00ffff,
+          wireframe: true,
+          transparent: true,
+          opacity: 0.3
+        });
+        cap.add(new THREE.Mesh(capGeometry.clone(), wireMaterial));
 
         // --- Direction Calculation ---
         const headingRad = THREE.MathUtils.degToRad(headingDeg);
@@ -268,8 +272,12 @@
         ]);
         const headingLine = new THREE.Line(lineGeometry, lineMaterial);
         cap.add(headingLine);
+        const capGroup = new THREE.Group();
+        capGroup.add(cap); // your red dome
+        capGroup.add(headingLine); // direction line
+        outerSphere.add(capGroup); // rotate with the grid
 
-        scene.add(cap);
+        outerSphere.add(capGroup); 
         return cap;
       }
       // --- UI Value Fetcher ---
