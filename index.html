@@ -201,8 +201,7 @@
         // --- Surface Anchor ---
         const surfaceNormal = new THREE.Vector3(0, 1, 0); // Points straight up
         const anchorOffset = height; // Use capHeight purely as offset
-        const anchorY = outerRadius + capHeight; // radius is not involved
-        cap.position.copy(surfaceNormal.clone().multiplyScalar(anchorY));
+        cap.position.copy(surfaceNormal.clone().multiplyScalar(anchorOffset));
 
 
         // --- Direction Calculation ---
