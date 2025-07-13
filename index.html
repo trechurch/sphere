@@ -60,15 +60,12 @@
 
       <label for="capSize">Cap Radius:</label>
       <input type="number" id="capSize" value="1.0" min="0.1" max="3" step="0.1" />
-
-      <label for="capSizeScale">Radius Scale:</label>
-      <input type="range" id="capSizeScale" min="1" max="5" step="1" value="4" />
+      <button id="capSizeScaleBtn">Scale: 4</button>
 
       <label for="capHeight">Cap Anchor Y:</label>
       <input type="number" id="capHeight" value="5.3" min="-10" max="10" step="0.1" />
+      <button id="capHeightScaleBtn">Scale: 4</button>
 
-      <label for="capHeightScale">Height Scale:</label>
-      <input type="range" id="capHeightScale" min="1" max="5" step="1" value="4" />
 
       <label for="capDirection">Cap Direction:</label>
       <select id="capDirection">
@@ -89,7 +86,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/js/controls/OrbitControls.js"></script>
     <script>
-           
+
       // --- INITIAL SCENE SETUP ---
       const scene = new THREE.Scene();
       const camera = new THREE.PerspectiveCamera(45, (window.innerWidth - 250) / window.innerHeight, 0.1, 1000);
@@ -111,7 +108,9 @@
 
       // --- GLOBAL STATE FOR AUTO-SPIN ---
       let isSpinning = true;
-
+      // --- set initial scaling factors for cap size and height --- 
+      let capSizeScale = 4;
+      let capHeightScale = 4;
       // --- get variable values for sphere cap demensions ---
       let capRadius = parseFloat(document.getElementById('capSize').value);
       let capHeight = parseFloat(document.getElementById('capHeight').value);
@@ -161,7 +160,7 @@
       const updatedFogColor = new THREE.Color(gridColor).lerp(new THREE.Color(bgColor), 0.5);
       fogMaterial.color = updatedFogColor;
 
-       // --- SCALE MAPPING LOGIC ---
+      // --- SCALE MAPPING LOGIC ---
       function getScaleMultiplier(level) {
         const scaleMap = {
           1: 0.001,
@@ -172,7 +171,7 @@
         };
         return scaleMap[level] || 1;
       }
-      
+
       // ---  -----------------------------EVENT LISTENERS FOR UI CONTROLS---------------------------------- ---
 
 
@@ -201,6 +200,18 @@
       });
       document.getElementById('spinToggle').addEventListener('change', e => {
         isSpinning = e.target.checked;
+      });
+
+      document.getElementById('capSizeScaleBtn').addEventListener('click', () => {
+        capSizeScale = capSizeScale === 5 ? 1 : capSizeScale + 1;
+        document.getElementById('capSizeScaleBtn').textContent = `Scale: ${capSizeScale}`;
+        rebuildCap(getCurrentUIValues());
+      });
+
+      document.getElementById('capHeightScaleBtn').addEventListener('click', () => {
+        capHeightScale = capHeightScale === 5 ? 1 : capHeightScale + 1;
+        document.getElementById('capHeightScaleBtn').textContent = `Scale: ${capHeightScale}`;
+        rebuildCap(getCurrentUIValues());
       });
 
       // --- ------------------------------------Beginning of Cap Creation----------------------------------- ---
@@ -246,12 +257,10 @@
       function getCurrentUIValues() {
         const rawRadius = parseFloat(document.getElementById('capSize').value);
         const rawHeight = parseFloat(document.getElementById('capHeight').value);
-        const scaleLevel = parseInt(document.getElementById('scaleLevel').value);
-        const multiplier = getScaleMultiplier(scaleLevel);
 
         return {
-          radius: rawRadius * multiplier,
-          height: rawHeight * multiplier,
+          radius: rawRadius * getScaleMultiplier(capSizeScale),
+          height: rawHeight * getScaleMultiplier(capHeightScale),
           headingDeg: parseFloat(document.getElementById('capDirection').value)
         };
       }
