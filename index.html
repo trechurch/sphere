@@ -8,6 +8,7 @@
   <title>Geodesic Sphere Depth Visualizer</title>
   <style>
     body {
+      
       font-family: sans-serif;
     }
 
@@ -243,13 +244,16 @@
         const capMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000, transparent: true, opacity: 0.7 });
         const cap = new THREE.Mesh(capGeometry, capMaterial);
 
-        // --- Surface Anchor ---
+         // --- Surface Anchor ---
         function getSurfaceNormalFromSpherical(latDeg, lonDeg) {
           const phi = THREE.MathUtils.degToRad(90 - latDeg);   // latitude to polar angle
           const theta = THREE.MathUtils.degToRad(lonDeg);      // longitude to azimuthal angle
 
           return new THREE.Vector3().setFromSphericalCoords(1, phi, theta).normalize();
         }
+        
+        // FIX: Call the function to define surfaceNormal
+        const surfaceNormal = getSurfaceNormalFromSpherical(90, 0); 
 
         const anchorOffset = (height - radius); // Use capHeight purely as offset
         cap.position.copy(surfaceNormal.clone().multiplyScalar(outerRadius + anchorOffset));
