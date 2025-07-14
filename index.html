@@ -244,7 +244,13 @@
         const cap = new THREE.Mesh(capGeometry, capMaterial);
 
         // --- Surface Anchor ---
-        const surfaceNormal = new THREE.Vector3(0, 1, 0); // Points straight up
+        function getSurfaceNormalFromSpherical(latDeg, lonDeg) {
+          const phi = THREE.MathUtils.degToRad(90 - latDeg);   // latitude to polar angle
+          const theta = THREE.MathUtils.degToRad(lonDeg);      // longitude to azimuthal angle
+
+          return new THREE.Vector3().setFromSphericalCoords(1, phi, theta).normalize();
+        }
+
         const anchorOffset = (height - radius); // Use capHeight purely as offset
         cap.position.copy(surfaceNormal.clone().multiplyScalar(outerRadius + anchorOffset));
 
@@ -276,8 +282,24 @@
         capGroup.add(cap); // your red dome
         capGroup.add(headingLine); // direction line
         outerSphere.add(capGroup); // rotate with the grid
+        // --- Define Cap Anchor Position ---
+        const capPosition = surfaceNormal.clone().multiplyScalar(outerRadius + anchorOffset);
 
-        outerSphere.add(capGroup); 
+        // --- Create Directional Arrows ---
+        for (let i = 0; i < 8; i++) {
+          const angleOffset = (Math.PI * 2 * i) / 8;
+          const dir = directionVector.clone().applyAxisAngle(surfaceNormal, angleOffset).normalize();
+
+          const origin = capPosition.clone().add(dir.clone().multiplyScalar(radiusClamped * 0.85));
+
+          const arrow = new THREE.ArrowHelper(dir, origin, radiusClamped * 0.25, 0x00ffff, 0.05, 0.03);
+          capGroup.add(arrow);
+        }
+
+
+        function snapHeading(deg, increment = 22.5) {
+          return Math.round(deg / increment) * increment;
+        }
         return cap;
       }
       // --- UI Value Fetcher ---
