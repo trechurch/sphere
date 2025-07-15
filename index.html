@@ -8,7 +8,7 @@
   <title>Geodesic Sphere Depth Visualizer</title>
   <style>
     body {
-      
+
       font-family: sans-serif;
     }
 
@@ -121,7 +121,8 @@
       let capHeight = parseFloat(document.getElementById('capHeight').value);
       const capSegments = 32;
 
-      const gridColor = document.getElementById('gridColor').value;
+      let gridColor = document.getElementById('gridColor').value;
+
       // --- Create Grid Sphere Material Factory ---
       function createGridMaterial(opacity) {
         return new THREE.MeshBasicMaterial({
@@ -224,6 +225,7 @@
 
       // --- Build Cap Function ---
       function createDirectionalCap({ radius, height, headingDeg }) {
+        const capGroup = new THREE.Group(); //
         const maxCapRadius = outerRadius * 0.75;
         const radiusClamped = Math.min(radius, maxCapRadius);
         const curvedRadius = Math.min(radius, outerRadius);
@@ -244,16 +246,18 @@
         const capMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000, transparent: true, opacity: 0.7 });
         const cap = new THREE.Mesh(capGeometry, capMaterial);
 
-         // --- Surface Anchor ---
+        // --- Surface Anchor ---
         function getSurfaceNormalFromSpherical(latDeg, lonDeg) {
           const phi = THREE.MathUtils.degToRad(90 - latDeg);   // latitude to polar angle
           const theta = THREE.MathUtils.degToRad(lonDeg);      // longitude to azimuthal angle
 
           return new THREE.Vector3().setFromSphericalCoords(1, phi, theta).normalize();
         }
-        
-        // FIX: Call the function to define surfaceNormal
-        const surfaceNormal = getSurfaceNormalFromSpherical(90, 0); 
+
+
+        // Replace latitude and longitude
+        const surfaceNormal = getSurfaceNormalFromSpherical(29.76, -95.37);
+
 
         const anchorOffset = (height - radius); // Use capHeight purely as offset
         cap.position.copy(surfaceNormal.clone().multiplyScalar(outerRadius + anchorOffset));
@@ -280,12 +284,13 @@
           new THREE.Vector3(0, 0, 0),
           directionAnchor // Tip of direction
         ]);
-        const headingLine = new THREE.Line(lineGeometry, lineMaterial);
-        cap.add(headingLine);
-        const capGroup = new THREE.Group();
-        capGroup.add(cap); // your red dome
-        capGroup.add(headingLine); // direction line
-        outerSphere.add(capGroup); // rotate with the grid
+        const headingAnchor = directionVector.clone().multiplyScalar(radius * 1.2);
+        const headingLineGeometry = new THREE.BufferGeometry().setFromPoints([
+          cap.position.clone(),
+          cap.position.clone().add(headingAnchor)
+        ]);
+        const headingLine = new THREE.Line(headingLineGeometry, lineMaterial);
+        capGroup.add(headingLine);
         // --- Define Cap Anchor Position ---
         const capPosition = surfaceNormal.clone().multiplyScalar(outerRadius + anchorOffset);
 
