@@ -221,19 +221,19 @@
         rebuildCap(getCurrentUIValues());
       });
 
-      // --- ------------------------------------Beginning of Cap Creation----------------------------------- ---
+      // --- ------------------------------------Beginning of Cap Management----------------------------------- ---
 
       // --- Build Cap Function ---
       function createDirectionalCap({ radius, height, headingDeg }) {
-        const capGroup = new THREE.Group(); //
+        const capGroup = new THREE.Group();
+
         const maxCapRadius = outerRadius * 0.75;
         const radiusClamped = Math.min(radius, maxCapRadius);
         const curvedRadius = Math.min(radius, outerRadius);
         const phiLength = THREE.MathUtils.clamp(curvedRadius / outerRadius, 0.05, 0.3);
         const capSegments = 32;
 
-
-        // --- Geometry & Material ---
+        // --- Cap Geometry ---
         const capGeometry = new THREE.SphereGeometry(
           radius,
           capSegments,
@@ -243,34 +243,39 @@
           0,
           phiLength
         );
-        const capMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000, transparent: true, opacity: 0.7 });
+        const capMaterial = new THREE.MeshBasicMaterial({
+          color: 0xff0000,
+          transparent: true,
+          opacity: 0.7
+        });
         const cap = new THREE.Mesh(capGeometry, capMaterial);
 
-        // --- Surface Anchor ---
+        // --- Surface Anchor Logic ---
         function getSurfaceNormalFromSpherical(latDeg, lonDeg) {
-          const phi = THREE.MathUtils.degToRad(90 - latDeg);   // latitude to polar angle
-          const theta = THREE.MathUtils.degToRad(lonDeg);      // longitude to azimuthal angle
-
+          const phi = THREE.MathUtils.degToRad(90 - latDeg);
+          const theta = THREE.MathUtils.degToRad(lonDeg);
           return new THREE.Vector3().setFromSphericalCoords(1, phi, theta).normalize();
         }
 
-
-        // Replace latitude and longitude
         const surfaceNormal = getSurfaceNormalFromSpherical(29.76, -95.37);
+        const anchorOffset = height - radius;
+        const capPosition = surfaceNormal.clone().multiplyScalar(outerRadius + anchorOffset);
 
+        cap.position.copy(capPosition);
 
-        const anchorOffset = (height - radius); // Use capHeight purely as offset
-        cap.position.copy(surfaceNormal.clone().multiplyScalar(outerRadius + anchorOffset));
-
+        // --- Wireframe Overlay ---
         const wireMaterial = new THREE.MeshBasicMaterial({
           color: 0x00ffff,
           wireframe: true,
           transparent: true,
           opacity: 0.3
         });
-        cap.add(new THREE.Mesh(capGeometry.clone(), wireMaterial));
+        const wireframe = new THREE.Mesh(capGeometry.clone(), wireMaterial);
+        cap.add(wireframe);
 
-        // --- Direction Calculation ---
+        capGroup.add(cap);
+
+        // --- Direction Vector ---
         const headingRad = THREE.MathUtils.degToRad(headingDeg);
         const upVector = new THREE.Vector3(0, 1, 0);
         const right = new THREE.Vector3().crossVectors(upVector, surfaceNormal).normalize();
@@ -278,39 +283,30 @@
         const directionVector = forward.clone().applyAxisAngle(surfaceNormal, headingRad);
 
         // --- Direction Line Indicator ---
-        const directionAnchor = directionVector.clone().multiplyScalar(radius * 1.2); // push past the dome
-        const lineMaterial = new THREE.LineBasicMaterial({ color: 0x00ffff, linewidth: 2 });
-        const lineGeometry = new THREE.BufferGeometry().setFromPoints([
-          new THREE.Vector3(0, 0, 0),
-          directionAnchor // Tip of direction
-        ]);
         const headingAnchor = directionVector.clone().multiplyScalar(radius * 1.2);
         const headingLineGeometry = new THREE.BufferGeometry().setFromPoints([
           cap.position.clone(),
           cap.position.clone().add(headingAnchor)
         ]);
+        const lineMaterial = new THREE.LineBasicMaterial({ color: 0x00ffff, linewidth: 2 });
         const headingLine = new THREE.Line(headingLineGeometry, lineMaterial);
         capGroup.add(headingLine);
-        // --- Define Cap Anchor Position ---
-        const capPosition = surfaceNormal.clone().multiplyScalar(outerRadius + anchorOffset);
 
-        // --- Create Directional Arrows ---
-        for (let i = 0; i < 8; i++) {
-          const angleOffset = (Math.PI * 2 * i) / 8;
-          const dir = directionVector.clone().applyAxisAngle(surfaceNormal, angleOffset).normalize();
+        // --- Arrow Helper ---
+        const arrowOrigin = capPosition.clone().add(directionVector.clone().multiplyScalar(radiusClamped * 0.85));
+        const arrow = new THREE.ArrowHelper(directionVector, arrowOrigin, radiusClamped * 0.25, 0x00ffff, 0.05, 0.03);
+        capGroup.add(arrow);
 
-          const origin = capPosition.clone().add(dir.clone().multiplyScalar(radiusClamped * 0.85));
+        capGroup.position.copy(capPosition);
 
-          const arrow = new THREE.ArrowHelper(dir, origin, radiusClamped * 0.25, 0x00ffff, 0.05, 0.03);
-          capGroup.add(arrow);
-        }
-
-
-        function snapHeading(deg, increment = 22.5) {
-          return Math.round(deg / increment) * increment;
-        }
         return capGroup;
       }
+
+      // --- Optional Heading Snapper ---
+      function snapHeading(deg, increment = 22.5) {
+        return Math.round(deg / increment) * increment;
+      }
+
       // --- UI Value Fetcher ---
       function getCurrentUIValues() {
         const rawRadius = parseFloat(document.getElementById('capSize').value);
@@ -325,17 +321,13 @@
 
       // --- Rebuild Handler ---
       function rebuildCap(params) {
-
-
         const newCap = createDirectionalCap(params);
         newCap.name = 'directionalCap';
-        scene.add(newCap); // ✅ Now adds full capGroup to the scene
-
-
+        scene.add(newCap);
       }
 
-
       rebuildCap(getCurrentUIValues());
+
       // --- ------------------------------------End of Cap Management-------------------------------------- ---
 
       // --- MAIN ANIMATION LOOP ---
