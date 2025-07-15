@@ -309,7 +309,7 @@
         function snapHeading(deg, increment = 22.5) {
           return Math.round(deg / increment) * increment;
         }
-        return capGroup;
+        return cap;
       }
       // --- UI Value Fetcher ---
       function getCurrentUIValues() {
@@ -325,13 +325,11 @@
 
       // --- Rebuild Handler ---
       function rebuildCap(params) {
-
+        const existingCap = scene.getObjectByName('directionalCap');
+        if (existingCap) scene.remove(existingCap);
 
         const newCap = createDirectionalCap(params);
         newCap.name = 'directionalCap';
-        scene.add(newCap); // ✅ Now adds full capGroup to the scene
-
-
       }
 
 
