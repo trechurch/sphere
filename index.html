@@ -1,350 +1,452 @@
 <!DOCTYPE html>
 <!-- HTML HEAD Module ---------------------------------------------------------------------------------------------------------------->
 <html lang="en">
-
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Geodesic Sphere Depth Visualizer</title>
-  <style>
-    body {
-
-      font-family: sans-serif;
-    }
-
-    #controls {
-      width: 250px;
-      padding: 20px;
-      height: 100vh;
-      background: #eee;
-      box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
-      display: flex;
-      flex-direction: column;
-      gap: 15px;
-      position: fixed;
-      right: 0;
-      margin-left: 80vw;
-    }
-
-    .menu {
-      display: flex;
-      max-width: 100vw;
-    }
-
-    canvas {
-      flex: 1;
-      overflow: hidden
-    }
-
-    label {
-      font-weight: bold;
-    }
-  </style>
-</head>
-
-<body>
-  <!-- HTML HEAD Module ends---------------------------------------------------------------------------------------------------------------->
-  <!-- DIV Module -------------------------------------------------------------------------------------------------------------------------->
-  <!-- Right SIDEBAR CONTROL PANEL -->
-
-  <div class="menu">
-
-    <div id="controls">
-      <label for="bgColor">Background Color:</label>
-      <input type="color" id="bgColor" value="#ffffff" />
-
-      <label for="gridColor">Grid Line Color:</label>
-      <input type="color" id="gridColor" value="#000000" />
-
-      <label for="spinToggle">
-        <input type="checkbox" id="spinToggle" checked /> Spin Sphere
-      </label>
-
-      <label for="capSize">Cap Radius:</label>
-      <input type="number" id="capSize" value="1.0" min="0.1" max="3" step="0.1" />
-      <button id="capSizeScaleBtn">Scale: 4</button>
-
-      <label for="capHeight">Cap Anchor Y:</label>
-      <input type="number" id="capHeight" value="5.3" min="-10" max="10" step="0.1" />
-      <button id="capHeightScaleBtn">Scale: 4</button>
-
-
-      <label for="capDirection">Cap Direction:</label>
-      <select id="capDirection">
-        <option value="0">North</option>
-        <option value="45">NE</option>
-        <option value="90">East</option>
-        <option value="135">SE</option>
-        <option value="180">South</option>
-        <option value="225">SW</option>
-        <option value="270">West</option>
-        <option value="315">NW</option>
-      </select>
-
-    </div>
-    <!-- DIV Module ends -------------------------------------------------------------------------------------------->
-    <!---  ----------------------------------------------SCRIPT Modules --------------------------------------------->
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/js/controls/OrbitControls.js"></script>
-    <script>
-
-      // --- INITIAL SCENE SETUP ---
-      const scene = new THREE.Scene();
-      const camera = new THREE.PerspectiveCamera(45, (window.innerWidth - 250) / window.innerHeight, 0.1, 1000);
-      const renderer = new THREE.WebGLRenderer({ antialias: true });
-      renderer.setSize(window.innerWidth - 250, window.innerHeight);
-      document.body.appendChild(renderer.domElement);
-
-      // --- ORBIT CONTROLS FOR MOUSE ROTATION ---
-      const controls = new THREE.OrbitControls(camera, renderer.domElement);
-      controls.enablePan = false;
-      controls.enableZoom = false;
-      controls.rotateSpeed = 0.4;
-      controls.enableDamping = true;
-      controls.dampingFactor = 0.05;
-      camera.position.set(0, 0, 15);
-      camera.lookAt(new THREE.Vector3(0, 0, 0));
-      controls.enableZoom = true;
-      controls.enablePan = true;
-
-      // --- GLOBAL STATE FOR AUTO-SPIN ---
-      let isSpinning = true;
-      // --- set initial scaling factors for cap size and height --- 
-      let capSizeScale = 4;
-      let capHeightScale = 2;
-      const outerRadius = 5;
-
-
-      // --- get variable values for sphere cap demensions ---
-      let capRadius = parseFloat(document.getElementById('capSize').value);
-      let capHeight = parseFloat(document.getElementById('capHeight').value);
-      const capSegments = 32;
-
-      let gridColor = document.getElementById('gridColor').value;
-
-      // --- Create Grid Sphere Material Factory ---
-      function createGridMaterial(opacity) {
-        return new THREE.MeshBasicMaterial({
-          color: gridColor,
-          wireframe: true,
-          transparent: true,
-          opacity: opacity
-        });
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Geodesic Sphere Depth Visualizer</title>
+    <style>
+      body {
+        font-family: sans-serif;
       }
 
-      // --- Create Outer Grid Sphere ---
-
-      const outerSphere = new THREE.Mesh(
-        new THREE.IcosahedronGeometry(outerRadius, 4),
-        createGridMaterial(1.0)
-      );
-      scene.add(outerSphere);
-
-      // --- Create Inner Grid Sphere ---
-      const innerSphereRadius = outerRadius - 0.15;
-      innerSphere = new THREE.Mesh(
-        new THREE.IcosahedronGeometry(innerSphereRadius, 4),
-        createGridMaterial(0.6)
-      );
-      scene.add(innerSphere);
-
-
-      // --- CREATE FOG SHELL (BLEND OF GRID + BACKGROUND COLORS) ---
-      let bgColor = document.getElementById('bgColor').value;
-      const fogColor = new THREE.Color(gridColor).lerp(new THREE.Color(bgColor), 0.5);
-      const fogGeometry = new THREE.SphereGeometry(4.6, 64, 64);
-      const fogMaterial = new THREE.MeshBasicMaterial({
-        color: fogColor,
-        transparent: true,
-        opacity: 0.5
-      });
-      const fogShell = new THREE.Mesh(fogGeometry, fogMaterial);
-      scene.add(fogShell);
-      scene.background = new THREE.Color(bgColor);
-      // --- Update fog layer blend  ---
-      const updatedFogColor = new THREE.Color(gridColor).lerp(new THREE.Color(bgColor), 0.5);
-      fogMaterial.color = updatedFogColor;
-
-
-      // --- SCALE MAPPING LOGIC ---
-      function getScaleMultiplier(level) {
-        const scaleMap = {
-          1: 0.001,
-          2: 0.01,
-          3: 0.1,
-          4: 1,
-          5: 10
-        };
-        return scaleMap[level] || 1;
+      #controls {
+        width: 250px;
+        padding: 20px;
+        height: 100vh;
+        background: #eee;
+        box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        position: fixed;
+        right: 0;
+        margin-left: 80vw;
       }
 
-      // ---  -----------------------------EVENT LISTENERS FOR UI CONTROLS---------------------------------- ---
+      .menu {
+        display: flex;
+        max-width: 100vw;
+      }
 
+      canvas {
+        flex: 1;
+        overflow: hidden;
+      }
 
-      document.getElementById('bgColor').addEventListener('input', e => {
-        bgColor = e.target.value;
-        scene.background = new THREE.Color(bgColor);
-        const updatedFogColor = new THREE.Color(gridColor).lerp(new THREE.Color(bgColor), 0.5);
-        fogMaterial.color = updatedFogColor;
-      });
-      document.getElementById('gridColor').addEventListener('input', e => {
-        gridColor = e.target.value;
-        outerMaterial.color.set(gridColor);
-        innerMaterial.color.set(gridColor);
-        // Recalculate fog layer blend
-        const updatedFogColor = new THREE.Color(gridColor).lerp(new THREE.Color(bgColor), 0.5);
-        fogMaterial.color = updatedFogColor;
-      });
-      document.getElementById('capSize').addEventListener('input', () => {
-        rebuildCap(getCurrentUIValues());
-      });
-      document.getElementById('capHeight').addEventListener('input', () => {
-        rebuildCap(getCurrentUIValues());
-      });
-      document.getElementById('capDirection').addEventListener('input', () => {
-        rebuildCap(getCurrentUIValues());
-      });
-      document.getElementById('spinToggle').addEventListener('change', e => {
-        isSpinning = e.target.checked;
-      });
+      label {
+        font-weight: bold;
+      }
+    </style>
+  </head>
 
-      document.getElementById('capSizeScaleBtn').addEventListener('click', () => {
-        capSizeScale = capSizeScale === 5 ? 1 : capSizeScale + 1;
-        document.getElementById('capSizeScaleBtn').textContent = `Scale: ${capSizeScale}`;
-        rebuildCap(getCurrentUIValues());
-      });
+  <body>
+    <!-- HTML HEAD Module ends---------------------------------------------------------------------------------------------------------------->
+    <!-- DIV Module -------------------------------------------------------------------------------------------------------------------------->
+    <!-- Right SIDEBAR CONTROL PANEL -->
 
-      document.getElementById('capHeightScaleBtn').addEventListener('click', () => {
-        capHeightScale = capHeightScale === 5 ? 1 : capHeightScale + 1;
-        document.getElementById('capHeightScaleBtn').textContent = `Scale: ${capHeightScale}`;
-        rebuildCap(getCurrentUIValues());
-      });
+    <div class="menu">
+      <div id="controls">
+        <label for="bgColor">Background Color:</label>
+        <input type="color" id="bgColor" value="#ffffff" />
 
-      // --- ------------------------------------Beginning of Cap Management----------------------------------- ---
+        <label for="gridColor">Grid Line Color:</label>
+        <input type="color" id="gridColor" value="#000000" />
 
-      // --- Build Cap Function ---
-      function createDirectionalCap({ radius, height, headingDeg }) {
-        const capGroup = new THREE.Group();
+        <label for="spinToggle">
+          <input type="checkbox" id="spinToggle" checked /> Spin Sphere
+        </label>
 
-        const maxCapRadius = outerRadius * 0.75;
-        const radiusClamped = Math.min(radius, maxCapRadius);
-        const curvedRadius = Math.min(radius, outerRadius);
-        const phiLength = THREE.MathUtils.clamp(curvedRadius / outerRadius, 0.05, 0.3);
+        <label for="capSize">Cap Radius:</label>
+        <input
+          type="number"
+          id="capSize"
+          value="1.0"
+          min="0.1"
+          max="3"
+          step="0.1"
+        />
+        <button id="capSizeScaleBtn">Scale: 4</button>
+
+        <label for="capHeight">Cap Anchor Y:</label>
+        <input
+          type="number"
+          id="capHeight"
+          value="5.3"
+          min="-10"
+          max="10"
+          step="0.1"
+        />
+        <button id="capHeightScaleBtn">Scale: 4</button>
+
+        <label for="capX">Set X:</label>
+        <input type="number" id="capX" value="0" step="0.1" />
+
+        <label for="capY">Set Y:</label>
+        <input type="number" id="capY" value="0" step="0.1" />
+
+        <label for="capZ">Set Z:</label>
+        <input type="number" id="capZ" value="0" step="0.1" />
+
+        <label for="capDirection">Cap Direction:</label>
+        <select id="capDirection">
+          <option value="0">North</option>
+          <option value="45">NE</option>
+          <option value="90">East</option>
+          <option value="135">SE</option>
+          <option value="180">South</option>
+          <option value="225">SW</option>
+          <option value="270">West</option>
+          <option value="315">NW</option>
+        </select>
+      </div>
+      <!-- DIV Module ends -------------------------------------------------------------------------------------------->
+      <!---  ----------------------------------------------SCRIPT Modules --------------------------------------------->
+
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+      <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/js/controls/OrbitControls.js"></script>
+      <script>
+        // --- INITIAL SCENE SETUP ---
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(
+          45,
+          (window.innerWidth - 250) / window.innerHeight,
+          0.1,
+          1000
+        );
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth - 250, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // --- ORBIT CONTROLS FOR MOUSE ROTATION ---
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enablePan = false;
+        controls.enableZoom = false;
+        controls.rotateSpeed = 0.4;
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        camera.position.set(0, 0, 15);
+        camera.lookAt(new THREE.Vector3(0, 0, 0));
+        controls.enableZoom = true;
+        controls.enablePan = true;
+
+        // --- GLOBAL STATE FOR AUTO-SPIN ---
+        let isSpinning = true;
+        // --- set initial scaling factors for cap size and height ---
+        let capSizeScale = 4;
+        let capHeightScale = 2;
+        const outerRadius = 5;
+
+        // --- get variable values for sphere cap demensions ---
+        let capRadius = parseFloat(document.getElementById("capSize").value);
+        let capHeight = parseFloat(document.getElementById("capHeight").value);
         const capSegments = 32;
 
-        // --- Cap Geometry ---
-        const capGeometry = new THREE.SphereGeometry(
-          radius,
-          capSegments,
-          capSegments,
-          0,
-          Math.PI * 2,
-          0,
-          phiLength
+        let gridColor = document.getElementById("gridColor").value;
+
+        // --- Create Grid Sphere Material Factory ---
+        function createGridMaterial(opacity) {
+          return new THREE.MeshBasicMaterial({
+            color: gridColor,
+            wireframe: true,
+            transparent: true,
+            opacity: opacity,
+          });
+        }
+
+        // --- Create Outer Grid Sphere ---
+
+        const outerMaterial = createGridMaterial(1.0);
+        const outerSphere = new THREE.Mesh(
+          new THREE.IcosahedronGeometry(outerRadius, 4),
+          outerMaterial
         );
-        const capMaterial = new THREE.MeshBasicMaterial({
-          color: 0xff0000,
-          transparent: true,
-          opacity: 0.7
-        });
-        const cap = new THREE.Mesh(capGeometry, capMaterial);
+        scene.add(outerSphere);
 
-        // --- Surface Anchor Logic ---
-        function getSurfaceNormalFromSpherical(latDeg, lonDeg) {
-          const phi = THREE.MathUtils.degToRad(90 - latDeg);
-          const theta = THREE.MathUtils.degToRad(lonDeg);
-          return new THREE.Vector3().setFromSphericalCoords(1, phi, theta).normalize();
+        const innerMaterial = createGridMaterial(0.6);
+        const innerSphereRadius = outerRadius - 0.15;
+        const innerSphere = new THREE.Mesh(
+          new THREE.IcosahedronGeometry(innerSphereRadius, 4),
+          innerMaterial
+        );
+        scene.add(innerSphere);
+
+        // --- CREATE FOG SHELL (BLEND OF GRID + BACKGROUND COLORS) ---
+        let bgColor = document.getElementById("bgColor").value;
+        const fogColor = new THREE.Color(gridColor).lerp(
+          new THREE.Color(bgColor),
+          0.5
+        );
+        const fogGeometry = new THREE.SphereGeometry(4.6, 64, 64);
+        const fogMaterial = new THREE.MeshBasicMaterial({
+          color: fogColor,
+          transparent: true,
+          opacity: 0.5,
+        });
+        const fogShell = new THREE.Mesh(fogGeometry, fogMaterial);
+        scene.add(fogShell);
+        scene.background = new THREE.Color(bgColor);
+        // --- Update fog layer blend  ---
+        const updatedFogColor = new THREE.Color(gridColor).lerp(
+          new THREE.Color(bgColor),
+          0.5
+        );
+        fogMaterial.color = updatedFogColor;
+
+        // --- SCALE MAPPING LOGIC ---
+        function getScaleMultiplier(level) {
+          const scaleMap = {
+            1: 0.001,
+            2: 0.01,
+            3: 0.1,
+            4: 1,
+            5: 10,
+          };
+          return scaleMap[level] || 1;
         }
 
-        const surfaceNormal = getSurfaceNormalFromSpherical(29.76, -95.37);
-        const anchorOffset = height - radius;
-        const capPosition = surfaceNormal.clone().multiplyScalar(outerRadius + anchorOffset);
+        // ---  -----------------------------EVENT LISTENERS FOR UI CONTROLS---------------------------------- ---
 
-      
-
-        // --- Wireframe Overlay ---
-        const wireMaterial = new THREE.MeshBasicMaterial({
-          color: 0x00ffff,
-          wireframe: true,
-          transparent: true,
-          opacity: 0.3
+        document.getElementById("bgColor").addEventListener("input", (e) => {
+          bgColor = e.target.value;
+          scene.background = new THREE.Color(bgColor);
+          const updatedFogColor = new THREE.Color(gridColor).lerp(
+            new THREE.Color(bgColor),
+            0.5
+          );
+          fogMaterial.color = updatedFogColor;
         });
-        const wireframe = new THREE.Mesh(capGeometry.clone(), wireMaterial);
-        cap.add(wireframe);
+        document.getElementById("gridColor").addEventListener("input", (e) => {
+          gridColor = e.target.value;
 
-        capGroup.add(cap);
+          // ✅ Apply new color directly to material instances
+          outerMaterial.color.set(gridColor);
+          innerMaterial.color.set(gridColor);
 
-        // --- Direction Vector ---
-        const headingRad = THREE.MathUtils.degToRad(headingDeg);
-        const upVector = new THREE.Vector3(0, 1, 0);
-        const right = new THREE.Vector3().crossVectors(upVector, surfaceNormal).normalize();
-        const forward = new THREE.Vector3().crossVectors(surfaceNormal, right).normalize();
-        const directionVector = forward.clone().applyAxisAngle(surfaceNormal, headingRad);
+          // ✅ Recalculate fog blend
+          const updatedFogColor = new THREE.Color(gridColor).lerp(
+            new THREE.Color(bgColor),
+            0.5
+          );
+          fogMaterial.color.set(updatedFogColor);
+        });
 
-        // --- Direction Line Indicator ---
-        const headingAnchor = directionVector.clone().multiplyScalar(radius * 1.2);
-        const headingLineGeometry = new THREE.BufferGeometry().setFromPoints([
-          cap.position.clone(),
-          cap.position.clone().add(headingAnchor)
-        ]);
-        const lineMaterial = new THREE.LineBasicMaterial({ color: 0x00ffff, linewidth: 2 });
-        const headingLine = new THREE.Line(headingLineGeometry, lineMaterial);
-        capGroup.add(headingLine);
+        document.getElementById("capSize").addEventListener("input", () => {
+          rebuildCap(getCurrentUIValues());
+        });
+        document.getElementById("capHeight").addEventListener("input", () => {
+          rebuildCap(getCurrentUIValues());
+        });
+        document
+          .getElementById("capDirection")
+          .addEventListener("input", () => {
+            rebuildCap(getCurrentUIValues());
+          });
+        document
+          .getElementById("spinToggle")
+          .addEventListener("change", (e) => {
+            isSpinning = e.target.checked;
+          });
 
-        // --- Arrow Helper ---
-        const arrowOrigin = capPosition.clone().add(directionVector.clone().multiplyScalar(radiusClamped * 0.85));
-        const arrow = new THREE.ArrowHelper(directionVector, arrowOrigin, radiusClamped * 0.25, 0x00ffff, 0.05, 0.03);
-        capGroup.add(arrow);
+        document
+          .getElementById("capSizeScaleBtn")
+          .addEventListener("click", () => {
+            capSizeScale = capSizeScale === 5 ? 1 : capSizeScale + 1;
+            document.getElementById(
+              "capSizeScaleBtn"
+            ).textContent = `Scale: ${capSizeScale}`;
+            rebuildCap(getCurrentUIValues());
+          });
 
-        capGroup.position.copy(capPosition);
+        document
+          .getElementById("capHeightScaleBtn")
+          .addEventListener("click", () => {
+            capHeightScale = capHeightScale === 5 ? 1 : capHeightScale + 1;
+            document.getElementById(
+              "capHeightScaleBtn"
+            ).textContent = `Scale: ${capHeightScale}`;
+            rebuildCap(getCurrentUIValues());
+          });
 
-        return capGroup;
-      }
+        // --- ------------------------------------Beginning of Cap Management----------------------------------- ---
 
-      // --- Optional Heading Snapper ---
-      function snapHeading(deg, increment = 22.5) {
-        return Math.round(deg / increment) * increment;
-      }
+        // --- Build Cap Function ---
+        function createDirectionalCap({ radius, height, headingDeg }) {
+          const capGroup = new THREE.Group();
+          const maxCapRadius = outerRadius * 0.75;
+          const radiusClamped = Math.min(radius, maxCapRadius);
+          const curvedRadius = Math.min(radius, outerRadius);
+          const phiLength = THREE.MathUtils.clamp(
+            curvedRadius / outerRadius,
+            0.05,
+            0.3
+          );
+          const capSegments = 32;
 
-      // --- UI Value Fetcher ---
-      function getCurrentUIValues() {
-        const rawRadius = parseFloat(document.getElementById('capSize').value);
-        const rawHeight = parseFloat(document.getElementById('capHeight').value);
+          // --- Cap Geometry ---
+          const capGeometry = new THREE.SphereGeometry(
+            radius,
+            capSegments,
+            capSegments,
+            0,
+            Math.PI * 2,
+            0,
+            phiLength
+          );
+          const capMaterial = new THREE.MeshBasicMaterial({
+            color: 0xff0000,
+            transparent: true,
+            opacity: 0.7,
+          });
+          const cap = new THREE.Mesh(capGeometry, capMaterial);
 
-        return {
-          radius: rawRadius * getScaleMultiplier(capSizeScale),
-          height: rawHeight * getScaleMultiplier(capHeightScale),
-          headingDeg: parseFloat(document.getElementById('capDirection').value)
-        };
-      }
+          // --- Surface Anchor Logic ---
+          function getSurfaceNormalFromSpherical(latDeg, lonDeg) {
+            const phi = THREE.MathUtils.degToRad(90 - latDeg);
+            const theta = THREE.MathUtils.degToRad(lonDeg);
+            return new THREE.Vector3()
+              .setFromSphericalCoords(1, phi, theta)
+              .normalize();
+          }
 
-      // --- Rebuild Handler ---
-      function rebuildCap(params) {
-        const newCap = createDirectionalCap(params);
-        newCap.name = 'directionalCap';
-        scene.add(newCap);
-      }
+          const surfaceNormal = getSurfaceNormalFromSpherical(29.76, -95.37);
+          const anchorOffset = height - radius;
+          const capPosition = surfaceNormal
+            .clone()
+            .multiplyScalar(outerRadius + anchorOffset);
 
-      rebuildCap(getCurrentUIValues());
+          // --- Wireframe Overlay ---
+          const wireMaterial = new THREE.MeshBasicMaterial({
+            color: 0x00ffff,
+            wireframe: true,
+            transparent: true,
+            opacity: 0.3,
+          });
+          const wireframe = new THREE.Mesh(capGeometry.clone(), wireMaterial);
+          cap.add(wireframe);
 
-      // --- ------------------------------------End of Cap Management-------------------------------------- ---
+          capGroup.add(cap);
 
-      // --- MAIN ANIMATION LOOP ---
-      function animate() {
-        requestAnimationFrame(animate);
-        controls.update();
-        if (isSpinning) {
-          outerSphere.rotation.y += 0.002;
-          innerSphere.rotation.y += 0.002;
-          fogShell.rotation.y += 0.002;
+          // --- Direction Vector ---
+          const headingRad = THREE.MathUtils.degToRad(headingDeg);
+          const upVector = new THREE.Vector3(0, 1, 0);
+          const right = new THREE.Vector3()
+            .crossVectors(upVector, surfaceNormal)
+            .normalize();
+          const forward = new THREE.Vector3()
+            .crossVectors(surfaceNormal, right)
+            .normalize();
+          const directionVector = forward
+            .clone()
+            .applyAxisAngle(surfaceNormal, headingRad);
+
+          // --- Direction Line Indicator ---
+          const headingAnchor = directionVector
+            .clone()
+            .multiplyScalar(radius * 1.2);
+          const headingLineGeometry = new THREE.BufferGeometry().setFromPoints([
+            cap.position.clone(),
+            cap.position.clone().add(headingAnchor),
+          ]);
+          const lineMaterial = new THREE.LineBasicMaterial({
+            color: 0x00ffff,
+            linewidth: 2,
+          });
+          const headingLine = new THREE.Line(headingLineGeometry, lineMaterial);
+          capGroup.add(headingLine);
+
+          // --- Arrow Helper ---
+          const arrowOrigin = capPosition
+            .clone()
+            .add(directionVector.clone().multiplyScalar(radiusClamped * 0.85));
+          const arrow = new THREE.ArrowHelper(
+            directionVector,
+            arrowOrigin,
+            radiusClamped * 0.25,
+            0x00ffff,
+            0.05,
+            0.03
+          );
+          capGroup.add(arrow);
+
+          if (
+            params.overridePosition &&
+            !isNaN(params.overridePosition.x) &&
+            !isNaN(params.overridePosition.y) &&
+            !isNaN(params.overridePosition.z)
+          ) {
+            capGroup.position.copy(params.overridePosition);
+          } else {
+            capGroup.position.copy(capPosition);
+          }
+
+          return capGroup;
         }
-        renderer.render(scene, camera);
-      }
-      scene.background = new THREE.Color(bgColor);
-      animate();
-    </script>
-  </div>
-</body>
 
+        // --- Optional Heading Snapper ---
+        function snapHeading(deg, increment = 22.5) {
+          return Math.round(deg / increment) * increment;
+        }
+
+        // --- UI Value Fetcher ---
+        function getCurrentUIValues() {
+          const rawRadius = parseFloat(
+            document.getElementById("capSize").value
+          );
+          const rawHeight = parseFloat(
+            document.getElementById("capHeight").value
+          );
+
+          return {
+            radius: rawRadius * getScaleMultiplier(capSizeScale),
+            height: rawHeight * getScaleMultiplier(capHeightScale),
+            headingDeg: parseFloat(
+              document.getElementById("capDirection").value
+            ),
+            overridePosition: new THREE.Vector3(
+              parseFloat(document.getElementById("capX").value),
+              parseFloat(document.getElementById("capY").value),
+              parseFloat(document.getElementById("capZ").value)
+            ),
+          };
+        }
+
+        // --- Rebuild Handler ---
+        function rebuildCap(params) {
+          // Remove old cap group if it exists
+          const oldCap = scene.getObjectByName("directionalCap");
+          if (oldCap) {
+            scene.remove(oldCap);
+            oldCap.traverse((obj) => {
+              if (obj.geometry) obj.geometry.dispose();
+              if (obj.material) obj.material.dispose();
+            });
+          }
+
+          // Build new cap group
+          const newCap = createDirectionalCap(params);
+          newCap.name = "directionalCap";
+          scene.add(newCap);
+        }
+
+        rebuildCap(getCurrentUIValues());
+
+        // --- ------------------------------------End of Cap Management-------------------------------------- ---
+
+        // --- MAIN ANIMATION LOOP ---
+        function animate() {
+          requestAnimationFrame(animate);
+          controls.update();
+          if (isSpinning) {
+            outerSphere.rotation.y += 0.002;
+            innerSphere.rotation.y += 0.002;
+            fogShell.rotation.y += 0.002;
+          }
+          renderer.render(scene, camera);
+        }
+        scene.background = new THREE.Color(bgColor);
+        animate();
+      </script>
+    </div>
+  </body>
 </html>
