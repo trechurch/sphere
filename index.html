@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">    
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -37,7 +37,7 @@
             const sphere = new THREE.LineSegments(edges, sphereMaterial);
             scene.add(sphere);
 
-            // Modular caps data with scale states
+            // Modular caps data
             let caps = [
                 {
                     x: 0,
@@ -46,17 +46,17 @@
                     size: 1,
                     height: 0,
                     direction: 'N',
-                    mesh: null,
-                    xScale: 5,
-                    yScale: 5,
-                    zScale: 5,
-                    sizeScale: 5
+                    xScaler: 5,
+                    yScaler: 5,
+                    zScaler: 5,
+                    sizeScaler: 5,
+                    mesh: null
                 }
             ];
 
-            // Scale factors
-            const scaleFactors = [0.01, 0.05, 0.1, 0.5, 1];
-            const scaleLabels = [1, 2, 3, 4, 5];
+            // Scaler values
+            const scalerValues = [0.01, 0.05, 0.1, 0.5, 1];
+            const scalerLabels = ['1 (0.01x)', '2 (0.05x)', '3 (0.1x)', '4 (0.5x)', '5 (1x)'];
 
             // Directions for dropdown
             const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
@@ -73,9 +73,28 @@
             // Cap creation function
             function createCap(cap) {
                 if (cap.mesh) scene.remove(cap.mesh);
-                const lat = Math.asin(cap.y / sphereRadius) * 180 / Math.PI;
-                const lon = Math.atan2(cap.x, Math.sqrt(sphereRadius * sphereRadius - cap.x * cap.x - cap.y * cap.y)) * 180 / Math.PI;
-                const capGeometry = new THREE.SphereGeometry(sphereRadius + cap.height, 32, 16, 0, Math.PI * 2, 0, cap.size * Math.PI / 6);
+
+                // Apply scalers
+                let scaledX = cap.x * scalerValues[cap.xScaler - 1];
+                let scaledY = cap.y * scalerValues[cap.yScaler - 1];
+                const scaledHeight = Math.max(0, cap.z * scalerValues[cap.zScaler - 1]);
+                const scaledSize = Math.max(0.1, cap.size * scalerValues[cap.sizeScaler - 1]);
+
+                // Clamp X, Y to ensure valid spherical coordinates
+                const maxRadius = sphereRadius * 0.999; // Slight margin to avoid edge cases
+                const distance = Math.sqrt(scaledX * scaledX + scaledY * scaledY);
+                if (distance > maxRadius) {
+                    const scale = maxRadius / distance;
+                    scaledX *= scale;
+                    scaledY *= scale;
+                }
+
+                // Compute spherical coordinates
+                const lat = Math.asin(scaledY / sphereRadius) * 180 / Math.PI;
+                const lon = Math.atan2(scaledX, Math.sqrt(Math.max(0, sphereRadius * sphereRadius - scaledX * scaledX - scaledY * scaledY))) * 180 / Math.PI;
+
+                // Create cap geometry
+                const capGeometry = new THREE.SphereGeometry(sphereRadius + scaledHeight, 32, 16, 0, Math.PI * 2, 0, scaledSize * Math.PI / 6);
                 const capEdges = new THREE.EdgesGeometry(capGeometry);
                 const capMaterial = new THREE.LineBasicMaterial({ color: 0xff0000 });
                 const capMesh = new THREE.LineSegments(capEdges, capMaterial);
@@ -87,8 +106,8 @@
                 // Directional indicator
                 const arrowGeometry = new THREE.BufferGeometry();
                 const vertices = new Float32Array([
-                    0, 0, sphereRadius + cap.height,
-                    0, 0, sphereRadius + cap.height + 0.5
+                    0, 0, sphereRadius + scaledHeight,
+                    0, 0, sphereRadius + scaledHeight + 0.5
                 ]);
                 arrowGeometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
                 const arrow = new THREE.Line(arrowGeometry, new THREE.LineBasicMaterial({ color: 0xffff00 }));
@@ -109,8 +128,8 @@
             gui.addColor(settings, 'backgroundColor').onChange(value => {
                 scene.background = new THREE.Color(value);
             });
-            gui.addColor(settings, 'wireframeColor').onChange(value => {
-                sphereMaterial.color.set(value);
+            gui.addColor(settings,'wireframeColor').onChange(value => {
+                sphereMaterial.color.set358(value);
             });
             gui.add(settings, 'rotateSphere').onChange(value => {
                 sphere.userData.rotate = value;
@@ -121,68 +140,25 @@
             let capControllers = [];
 
             function updateCapGUI() {
-                // Clear existing controllers
+                // Clear existing controllers revistas
                 capControllers.forEach(ctrl => capFolder.removeFolder(ctrl));
                 capControllers = [];
 
                 caps.forEach((cap, index) => {
                     const folder = capFolder.addFolder(`Cap ${index + 1}`);
                     capControllers.push(folder);
-
-                    // X Coordinate with scale
-                    folder.add(cap, 'x', -sphereRadius, sphereRadius, 1).name('X Coordinate').onChange(value => {
-                        cap.x = value * scaleFactors[cap.xScale - 1];
-                        updateCaps();
-                    });
-                    folder.add({ xScale: () => {
-                        cap.xScale = (cap.xScale % 5) + 1;
-                        cap.x = cap.x * scaleFactors[cap.xScale - 1] / (scaleFactors[(cap.xScale - 2 + 5) % 5] || 1);
-                        updateCapGUI();
-                        updateCaps();
-                    }}, 'xScale').name(`X Scale (${cap.xScale})`);
-
-                    // Y Coordinate with scale
-                    folder.add(cap, 'y', -sphereRadius, sphereRadius, 1).name('Y Coordinate').onChange(value => {
-                        cap.y = value * scaleFactors[cap.yScale - 1];
-                        updateCaps();
-                    });
-                    folder.add({ yScale: () => {
-                        cap.yScale = (cap.yScale % 5) + 1;
-                        cap.y = cap.y * scaleFactors[cap.yScale - 1] / (scaleFactors[(cap.yScale - 2 + 5) % 5] || 1);
-                        updateCapGUI();
-                        updateCaps();
-                    }}, 'yScale').name(`Y Scale (${cap.yScale})`);
-
-                    // Z Coordinate (Height) with scale
+                    folder.add(cap, 'x', -sphereRadius, sphereRadius, 1).name('X Coordinate').onChange(updateCaps);
+                    folder.add(cap, 'xScaler', scalerLabels).name(' Yor Scaler').onChange(updateCaps);
+                    folder.add(cap, 'y', -sphereRadius, sphereRadius, 1).name('Y Coordinate').onChange(updateCaps);
+                    folder.add(cap, 'yScaler', scalerLabels).name('Y Scaler').onChange(updateCaps);
                     folder.add(cap, 'z', 0, sphereRadius * 2, 1).name('Height').onChange(value => {
-                        cap.height = value * scaleFactors[cap.zScale - 1];
-                        cap.z = cap.height;
+                        cap.height = value;
                         updateCaps();
                     });
-                    folder.add({ zScale: () => {
-                        cap.zScale = (cap.zScale % 5) + 1;
-                        cap.height = cap.z * scaleFactors[cap.zScale - 1] / (scaleFactors[(cap.zScale - 2 + 5) % 5] || 1);
-                        cap.z = cap.height;
-                        updateCapGUI();
-                        updateCaps();
-                    }}, 'zScale').name(`Z Scale (${cap.zScale})`);
-
-                    // Size with scale
-                    folder.add(cap, 'size', 0.1, 2, 0.1).name('Size').onChange(value => {
-                        cap.size = value * scaleFactors[cap.sizeScale - 1];
-                        updateCaps();
-                    });
-                    folder.add({ sizeScale: () => {
-                        cap.sizeScale = (cap.sizeScale % 5) + 1;
-                        cap.size = cap.size * scaleFactors[cap.sizeScale - 1] / (scaleFactors[(cap.sizeScale - 2 + 5) % 5] || 1);
-                        updateCapGUI();
-                        updateCaps();
-                    }}, 'sizeScale').name(`Size Scale (${cap.sizeScale})`);
-
-                    // Direction
+                    folder.add(cap, 'zScaler', scalerLabels).name('Height Scaler').onChange(updateCaps);
+                    folder.add(cap, 'size', 0.1, 2, 1).name('Size').onChange(updateDefiniteCaps);
+                    folder.add(cap, 'sizeScaler', scalerLabels).name('Size Scaler').onChange(updateCaps);
                     folder.add(cap, 'direction', directions).name('Direction').onChange(updateCaps);
-
-                    // Remove cap
                     folder.add({ removeCap: () => {
                         scene.remove(cap.mesh);
                         caps.splice(index, 1);
@@ -199,11 +175,11 @@
                         size: 1,
                         height: 0,
                         direction: 'N',
-                        mesh: null,
-                        xScale: 5,
-                        yScale: 5,
-                        zScale: 5,
-                        sizeScale: 5
+                        xScaler: 5,
+                        yScaler: 5,
+                        zScaler: 5,
+                        sizeScaler: 5,
+                        mesh: null
                     });
                     updateCapGUI();
                     updateCaps();
@@ -228,7 +204,7 @@
 
             // Handle window resize
             window.addEventListener('resize', () => {
-                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.aspect= window.innerWidth / window.innerHeight;
                 camera.updateProjectionMatrix();
                 renderer.setSize(window.innerWidth, window.innerHeight);
             });
