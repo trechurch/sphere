@@ -79,6 +79,15 @@
         />
         <button id="capHeightScaleBtn">Scale: 4</button>
 
+        <label for="capX">Set X:</label>
+        <input type="number" id="capX" value="0" step="0.1" />
+
+        <label for="capY">Set Y:</label>
+        <input type="number" id="capY" value="0" step="0.1" />
+
+        <label for="capZ">Set Z:</label>
+        <input type="number" id="capZ" value="0" step="0.1" />
+
         <label for="capDirection">Cap Direction:</label>
         <select id="capDirection">
           <option value="0">North</option>
@@ -264,7 +273,6 @@
         // --- Build Cap Function ---
         function createDirectionalCap({ radius, height, headingDeg }) {
           const capGroup = new THREE.Group();
-
           const maxCapRadius = outerRadius * 0.75;
           const radiusClamped = Math.min(radius, maxCapRadius);
           const curvedRadius = Math.min(radius, outerRadius);
@@ -361,7 +369,16 @@
           );
           capGroup.add(arrow);
 
-          capGroup.position.copy(capPosition);
+          if (
+            params.overridePosition &&
+            !isNaN(params.overridePosition.x) &&
+            !isNaN(params.overridePosition.y) &&
+            !isNaN(params.overridePosition.z)
+          ) {
+            capGroup.position.copy(params.overridePosition);
+          } else {
+            capGroup.position.copy(capPosition);
+          }
 
           return capGroup;
         }
@@ -385,6 +402,11 @@
             height: rawHeight * getScaleMultiplier(capHeightScale),
             headingDeg: parseFloat(
               document.getElementById("capDirection").value
+            ),
+            overridePosition: new THREE.Vector3(
+              parseFloat(document.getElementById("capX").value),
+              parseFloat(document.getElementById("capY").value),
+              parseFloat(document.getElementById("capZ").value)
             ),
           };
         }
