@@ -147,17 +147,18 @@
 
         // --- Create Outer Grid Sphere ---
 
+        const outerMaterial = createGridMaterial(1.0);
         const outerSphere = new THREE.Mesh(
           new THREE.IcosahedronGeometry(outerRadius, 4),
-          createGridMaterial(1.0)
+          outerMaterial
         );
         scene.add(outerSphere);
 
-        // --- Create Inner Grid Sphere ---
+        const innerMaterial = createGridMaterial(0.6);
         const innerSphereRadius = outerRadius - 0.15;
-        innerSphere = new THREE.Mesh(
+        const innerSphere = new THREE.Mesh(
           new THREE.IcosahedronGeometry(innerSphereRadius, 4),
-          createGridMaterial(0.6)
+          innerMaterial
         );
         scene.add(innerSphere);
 
@@ -208,15 +209,19 @@
         });
         document.getElementById("gridColor").addEventListener("input", (e) => {
           gridColor = e.target.value;
+
+          // ✅ Apply new color directly to material instances
           outerMaterial.color.set(gridColor);
           innerMaterial.color.set(gridColor);
-          // Recalculate fog layer blend
+
+          // ✅ Recalculate fog blend
           const updatedFogColor = new THREE.Color(gridColor).lerp(
             new THREE.Color(bgColor),
             0.5
           );
-          fogMaterial.color = updatedFogColor;
+          fogMaterial.color.set(updatedFogColor);
         });
+
         document.getElementById("capSize").addEventListener("input", () => {
           rebuildCap(getCurrentUIValues());
         });
