@@ -47,6 +47,13 @@
 
     <div class="menu">
       <div id="controls">
+        <div style="display: flex; flex-direction: column; gap: 5px">
+          <label>Cap Position Override (XYZ):</label>
+          <input type="number" id="capX" placeholder="X" />
+          <input type="number" id="capY" placeholder="Y" />
+          <input type="number" id="capZ" placeholder="Z" />
+        </div>
+
         <label for="bgColor">Background Color:</label>
         <input type="color" id="bgColor" value="#ffffff" />
 
@@ -78,15 +85,6 @@
           step="0.1"
         />
         <button id="capHeightScaleBtn">Scale: 4</button>
-
-        <label for="capX">Set X:</label>
-        <input type="number" id="capX" value="0" step="0.1" />
-
-        <label for="capY">Set Y:</label>
-        <input type="number" id="capY" value="0" step="0.1" />
-
-        <label for="capZ">Set Z:</label>
-        <input type="number" id="capZ" value="0" step="0.1" />
 
         <label for="capDirection">Cap Direction:</label>
         <select id="capDirection">
@@ -271,7 +269,9 @@
         // --- ------------------------------------Beginning of Cap Management----------------------------------- ---
 
         // --- Build Cap Function ---
-        function createDirectionalCap({ radius, height, headingDeg }) {
+        function createDirectionalCap(params) {
+          const { radius, height, headingDeg, overridePosition } = params;
+
           const capGroup = new THREE.Group();
           const maxCapRadius = outerRadius * 0.75;
           const radiusClamped = Math.min(radius, maxCapRadius);
@@ -310,7 +310,7 @@
           }
 
           const surfaceNormal = getSurfaceNormalFromSpherical(29.76, -95.37);
-          const anchorOffset = height - radius;
+          const anchorOffset = height;
           const capPosition = surfaceNormal
             .clone()
             .multiplyScalar(outerRadius + anchorOffset);
@@ -343,7 +343,7 @@
           // --- Direction Line Indicator ---
           const headingAnchor = directionVector
             .clone()
-            .multiplyScalar(radius * 1.2);
+            .multiplyScalar(radiusClamped * 1.2);
           const headingLineGeometry = new THREE.BufferGeometry().setFromPoints([
             cap.position.clone(),
             cap.position.clone().add(headingAnchor),
