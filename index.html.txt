@@ -386,13 +386,17 @@
 
         // --- Rebuild Handler ---
         function rebuildCap(params) {
-          // Remove any existing directional cap before rebuilding
-          const existingCap = scene.getObjectByName("directionalCap");
-          if (existingCap) {
-            scene.remove(existingCap);
-            existingCap.geometry?.dispose();
-            existingCap.material?.dispose();
+          // Remove old cap group if it exists
+          const oldCap = scene.getObjectByName("directionalCap");
+          if (oldCap) {
+            scene.remove(oldCap);
+            oldCap.traverse((obj) => {
+              if (obj.geometry) obj.geometry.dispose();
+              if (obj.material) obj.material.dispose();
+            });
           }
+
+          // Build new cap group
           const newCap = createDirectionalCap(params);
           newCap.name = "directionalCap";
           scene.add(newCap);
