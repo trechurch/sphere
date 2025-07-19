@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wireframe Earth with Modular Caps</title>
+    <style>
+        body { margin: 0; overflow: hidden; }
+        canvas { display: block; }
+        #gui { position: absolute; top: 10px; right: 10px; }
+        #error { position: absolute; top: 10px; left: 10px; color: red; font-family: Arial; }
+    </style>
+</head>
+<body>
+    <div id="gui"></div>
+    <div id="error"></div>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Error handling
+            const errorDiv = document.getElementById('error');
+            function showError(message) {
+                errorDiv.textContent = message;
+                console.error(message);
+            }
+
+            // Check for Three.js
+            if (typeof THREE === 'undefined') {
+                showError('Three.js failed to load. Please check the script source.');
+                return;
+            }
+
+            // Scene setup
+            let scene, camera, renderer, controls;
+            try {
+                scene = new THREE.Scene();
+                camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 20000);
+                renderer = new THREE.WebGLRenderer({ antialias: true });
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                document.body.appendChild(renderer.domElement);
+            } catch (e) {
+                showError(`Renderer initialization failed: ${e.message}`);
+                return;
+            }
+
+            // Camera controls
+            try {
+                controls = new THREE.OrbitControls(camera, renderer.domElement);
+                controls.enableDamping = true;
+                controls.dampingFactor = 0.05;
+                controls.maxDistance = 20000;
+                controls.minDistance = 10;
+            } catch (e) {
+                showError(`OrbitControls initialization failed: ${e.message}`);
+                return;
+            }
+
+            // Icosahedron setup for triangular wireframe (Earth scale)
+            const sphereRadius = 6371; // Earth's radius in km
+            let sphere;
+            try {
+                const geometry = new THREE.IcosahedronGeometry(sphereRadius, 4);
+                const edges = new THREE.EdgesGeometry(geometry);
+                const sphereMaterial = new THREE.LineBasicMaterial({ color: 0x00ff00 });
+                sphere = new THREE.LineSegments(edges, sphereMaterial);
+                scene.add(sphere);
+            } catch (e) {
+                showError(`Sphere initialization failed: ${e.message}`);
+                return;
+            }
+
+            // Modular caps data
+            let caps = [
+                {
+                    x: 0,
+                    y: 3000,
+                    z: 10,
+                    size: 1,
+                    height: 0,
+                    direction: 'N',
+                    xScaler: 5,
+                    yScaler: 5,
+                    zScaler: 5,
+                    sizeScaler: 3, // Large City
+                    mesh: null
+                }
+            ];
+
+            // Scaler values
+            const xyScalers = [0.1, 0.3, 0.5, 0.7, 1];
+            const xyScalerLabels = ['0.1x', '0.3x', '0.5x', '0.7x', '1x'];
+            const sizeScalers = [0.00028, 0.00088, 0.0028, 0.0396, 0.992]; // Neighborhood, Small Town, Large City, State, Continent
+            const sizeScalerLabels = ['Neighborhood', 'Small Town', 'Large City', 'State', 'Continent'];
+
+            // Directions for dropdown
+            const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+
+            // GUI setup
+            let gui;
+            try {
+                gui = new dat.GUI({ autoPlace: false });
+                document.getElementById('gui').appendChild(gui.domElement);
+            } catch (e) {
+                showError(`dat.GUI initialization failed: ${e.message}`);
+                return;
+            }
+            const settings = {
+                backgroundColor: '#000000',
+                wireframeColor: '#00ff00',
+                rotateSphere: false,
+                resetCamera: () => {
+                    if (caps.length > 0) {
+                        focusCameraOnCap(caps[caps.length - 1]); // Focus on the last cap
+                    } else {
+                        camera.position.set(0, 0, 12742);
+                        controls.target.set(0, 0, 0);
+                        controls.update();
+                    }
+                }
+            };
+
+            // Function to focus camera on a cap
+            function focusCameraOnCap(cap) {
+                const scaledX = cap.x * xyScalers[cap.xScaler - 1];
+                const scaledY = cap.y * xyScalers[cap.yScaler - 1];
+                const scaledHeight = Math.max(0, cap.z * xyScalers[cap.zScaler - 1]);
+                const scaledSize = Math.max(0.0001, cap.size * (sizeScalers[cap.sizeScaler] || sizeScalers[2]));
+                const lat = Math.asin(scaledY / sphereRadius) * 180 / Math.PI;
+                const lon = Math.atan2(scaledX, Math.sqrt(Math.max(0, sphereRadius * sphereRadius - scaledX * scaledX - scaledY * scaledY))) * 180 / Math.PI;
+                const theta = lat * Math.PI / 180;
+                const phi = lon * Math.PI / 180;
+                const radius = sphereRadius + scaledHeight;
+                const posX = radius * Math.sin(theta) * Math.cos(phi);
+                const posY = radius * Math.sin(theta) * Math.sin(phi);
+                const posZ = radius * Math.cos(theta);
+                const thetaLength = Math.max(0.0001, scaledSize * 0.5);
+                const distance = Math.max(100, sphereRadius * thetaLength * 10);
+                camera.position.set(posX, posY, posZ + distance);
+                controls.target.set(posX, posY, posZ);
+                controls.update();
+            }
+
+            // Cap creation function
+            function createCap(cap) {
+                if (cap.mesh) scene.remove(cap.mesh);
+
+                // Apply scalers
+                let scaledX = cap.x * xyScalers[cap.xScaler - 1];
+                let scaledY = cap.y * xyScalers[cap.yScaler - 1];
+                const scaledHeight = Math.max(0, cap.z * xyScalers[cap.zScaler - 1]);
+                let scalerIndex = cap.sizeScaler;
+                if (typeof scalerIndex === 'string') {
+                    scalerIndex = sizeScalerLabels.indexOf(cap.sizeScaler);
+                    if (scalerIndex === -1) scalerIndex = 2; // Default to Large City
+                }
+                const scaledSize = Math.max(0.0001, cap.size * sizeScalers[scalerIndex]);
+
+                // Clamp X, Y to ensure valid spherical coordinates
+                const maxRadius = sphereRadius * 0.999;
+                const distance = Math.sqrt(scaledX * scaledX + scaledY * scaledY);
+                if (distance > maxRadius) {
+                    const scale = maxRadius / distance;
+                    scaledX *= scale;
+                    scaledY *= scale;
+                }
+
+                // Compute spherical coordinates
+                const lat = Math.asin(scaledY / sphereRadius) * 180 / Math.PI;
+                const lon = Math.atan2(scaledX, Math.sqrt(Math.max(0, sphereRadius * sphereRadius - scaledX * scaledX - scaledY * scaledY))) * 180 / Math.PI;
+
+                // Log geometry parameters for debugging
+                console.log(`Cap ${JSON.stringify(cap)}: scaledX=${scaledX}, scaledY=${scaledY}, scaledHeight=${scaledHeight}, scaledSize=${scaledSize}, lat=${lat}, lon=${lon}`);
+
+                // Create cap mesh group
+                const capMesh = new THREE.Group();
+
+                // Create main cap geometry
+                const thetaLength = Math.max(0.0001, scaledSize * 0.5);
+                const capGeometry = new THREE.SphereGeometry(sphereRadius + scaledHeight, 32, 16, 0, Math.PI * 2, 0, thetaLength);
+                const capEdges = new THREE.EdgesGeometry(capGeometry);
+                const capMaterial = new THREE.LineBasicMaterial({ color: 0xff0000 });
+                const capLines = new THREE.LineSegments(capEdges, capMaterial);
+                capMesh.add(capLines);
+
+                // Create directional segment
+                const directionIndex = directions.indexOf(cap.direction);
+                const startAngle = directionIndex * Math.PI / 4;
+                const endAngle = startAngle + Math.PI / 4;
+                const dirGeometry = new THREE.SphereGeometry(sphereRadius + scaledHeight, 32, 16, startAngle, endAngle - startAngle, 0, thetaLength);
+                const dirEdges = new THREE.EdgesGeometry(dirGeometry);
+                const dirMaterial = new THREE.LineBasicMaterial({ color: 0xffff00 });
+                const dirLines = new THREE.LineSegments(dirEdges, dirMaterial);
+                capMesh.add(dirLines);
+
+                // Position and rotate cap
+                capMesh.position.set(0, 0, 0);
+                capMesh.rotation.set(0, -lon * Math.PI / 180, -lat * Math.PI / 180);
+
+                cap.mesh = capMesh;
+                scene.add(capMesh);
+
+                // Focus camera on cap
+                focusCameraOnCap(cap);
+            }
+
+            // Update all caps
+            function updateCaps() {
+                caps.forEach(cap => createCap(cap));
+            }
+
+            // GUI controls
+            gui.addColor(settings, 'backgroundColor').onChange(value => {
+                scene.background = new THREE.Color(value);
+            });
+            gui.addColor(settings, 'wireframeColor').onChange(value => {
+                sphereMaterial.color.set(value);
+            });
+            gui.add(settings, 'rotateSphere').onChange(value => {
+                sphere.userData.rotate = value;
+            });
+            gui.add(settings, 'resetCamera').name('Reset Camera');
+
+            // Cap folder
+            const capFolder = gui.addFolder('Caps');
+            let capControllers = [];
+
+            function updateCapGUI() {
+                // Clear existing controllers
+                capControllers.forEach(ctrl => capFolder.removeFolder(ctrl));
+                capControllers = [];
+
+                caps.forEach((cap, index) => {
+                    const folder = capFolder.addFolder(`Cap ${index + 1}`);
+                    capControllers.push(folder);
+                    folder.add(cap, 'x', -sphereRadius, sphereRadius, 1).name('X Coordinate').onChange(updateCaps);
+                    folder.add(cap, 'xScaler', xyScalerLabels).name('X Scaler').onChange(updateCaps);
+                    folder.add(cap, 'y', -sphereRadius, sphereRadius, 1).name('Y Coordinate').onChange(updateCaps);
+                    folder.add(cap, 'yScaler', xyScalerLabels).name('Y Scaler').onChange(updateCaps);
+                    folder.add(cap, 'z', 0, sphereRadius * 2, 1).name('Height').onChange(value => {
+                        cap.height = value;
+                        updateCaps();
+                    });
+                    folder.add(cap, 'zScaler', xyScalerLabels).name('Height Scaler').onChange(updateCaps);
+                    folder.add(cap, 'size', 0.0001, 2, 0.0001).name('Size').onChange(updateCaps);
+                    const sizeScalerController = folder.add({ sizeScaler: sizeScalerLabels[cap.sizeScaler] }, 'sizeScaler', sizeScalerLabels).name('Size Scaler');
+                    sizeScalerController.onChange(value => {
+                        cap.sizeScaler = sizeScalerLabels.indexOf(value);
+                        updateCaps();
+                    });
+                    folder.add(cap, 'direction', directions).name('Direction').onChange(updateCaps);
+                    folder.add({ removeCap: () => {
+                        scene.remove(cap.mesh);
+                        caps.splice(index, 1);
+                        updateCapGUI();
+                    }}, 'removeCap').name(`Remove Cap ${index + 1}`);
+                });
+
+                // Add new cap button
+                capFolder.add({ addCap: () => {
+                    caps.push({
+                        x: (Math.random() - 0.5) * 6000, // [-3000, 3000] km
+                        y: (Math.random() - 0.5) * 6000, // [-3000, 3000] km
+                        z: 10 + Math.random() * 40, // [10, 50] km
+                        size: 1,
+                        height: 0,
+                        direction: directions[Math.floor(Math.random() * directions.length)],
+                        xScaler: 5,
+                        yScaler: 5,
+                        zScaler: 5,
+                        sizeScaler: 3, // Large City
+                        mesh: null
+                    });
+                    updateCapGUI();
+                    updateCaps();
+                }}, 'addCap').name('Add New Cap');
+            }
+
+            updateCapGUI();
+
+            // Camera position
+            camera.position.z = 12742;
+
+            // Animation loop
+            function animate() {
+                requestAnimationFrame(animate);
+                if (sphere.userData.rotate) {
+                    sphere.rotation.y += 0.01;
+                }
+                controls.update();
+                try {
+                    renderer.render(scene, camera);
+                } catch (e) {
+                    showError(`Rendering failed: ${e.message}`);
+                }
+            }
+            animate();
+
+            // Handle window resize
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+
+            // Initial log
+            console.log('Scene initialized successfully');
+        });
+    </script>
+</body>
+</html>
