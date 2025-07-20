@@ -40,7 +40,7 @@
           errorDiv.textContent = message;
           console.error(message);
         }
-
+        const sphereRadius = 6371; // Earth's radius in km
         // Check for Three.js
         if (typeof THREE === "undefined") {
           showError("Three.js failed to load. Please check the script source.");
@@ -66,8 +66,10 @@
         }
         controls = new THREE.OrbitControls(camera, renderer.domElement);
         function resetCameraToDefault() {
-          camera.position.set(0, 0, 12742);
-          controls.target.set(0, 0, 0);
+          camera.position.set(0, 0, sphereRadius * 2);
+          if (!settings.preserveTarget) {
+            controls.target.set(0, 0, 0); // Only reset if toggle is off
+          }
           controls.update();
         }
 
@@ -93,7 +95,7 @@
           );
           const raycaster = new THREE.Raycaster();
           raycaster.setFromCamera(mouse, camera);
-          const intersects = raycaster.intersectObject(sphere, true);
+          const intersects = raycaster.intersectObject(earthGroup, true);
           if (intersects.length > 0) {
             controls.target.copy(intersects[0].point);
             controls.update();
@@ -101,7 +103,7 @@
         });
 
         // Icosahedron setup for triangular wireframe (Earth scale)
-        const sphereRadius = 6371; // Earth's radius in km
+
         let sphere;
         try {
           const geometry = new THREE.IcosahedronGeometry(sphereRadius, 4);
@@ -163,6 +165,7 @@
           backgroundColor: "#000000",
           wireframeColor: "#00ff00",
           rotateSphere: false,
+          preserveAnchor: false,
           resetCamera: () => {
             if (caps.length > 0) {
               focusCameraOnCap(caps[caps.length - 1]); // Focus on the last cap
@@ -328,6 +331,7 @@
           sphere.userData.rotate = value;
         });
         gui.add(settings, "resetCamera").name("Reset Camera");
+        gui.add(settings, "preserveTarget").name("Preserve Orbit Anchor");
 
         // Cap folder
         const capFolder = gui.addFolder("Caps");
