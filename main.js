@@ -69,8 +69,8 @@ const settings = {
     backgroundColor: "#000000",
     rotateSphere: true,
     preserveTarget: false,
-    pickCap: false, // New setting for picking mode
-    selectedCapIndex: 0, // Track selected cap for picking
+    pickCap: false,
+    selectedCapIndex: 0,
     resetCamera: () => {
         if (caps.length > 0) focusCameraOnCap(caps[caps.length - 1]);
         else resetCameraToDefault();
@@ -125,7 +125,6 @@ function focusCameraOnCap(cap) {
 function createCap(cap) {
     if (cap.mesh) earthGroup.remove(cap.mesh);
 
-    // Normalize position to stay on sphere surface
     const positionVector = new THREE.Vector3(cap.x, cap.y, cap.z).normalize();
     const scaledHeight = Math.max(0, cap.z * xyScalers[cap.zScaler]);
     const scaledSize = Math.max(0.0001, cap.size * sizeScalers[cap.sizeScaler]);
@@ -137,7 +136,6 @@ function createCap(cap) {
     capMesh.position.copy(positionVector.multiplyScalar(sphereRadius));
     capMesh.quaternion.copy(quaternion);
 
-    // Create cap geometry with direction-based coloring
     const capGeo = new THREE.SphereGeometry(sphereRadius + scaledHeight + 5, 32, 16, 0, Math.PI * 2, 0, scaledSize);
     const capEdges = new THREE.EdgesGeometry(capGeo);
     
@@ -190,7 +188,7 @@ function onMouseClick(event) {
             selectedCap.y = point.y;
             selectedCap.z = point.z;
             updateAndFocus(selectedCap);
-            renderHtmlCapsUI(); // Update HTML UI
+            renderHtmlCapsUI();
         }
     }
 }
@@ -234,7 +232,9 @@ pickCapContainer.innerHTML = `
         <select id="select-cap"></select>
     </div>
 `;
-htmlControlsContainer.insertBefore(pickCapContainer, capsContainer);
+// Find the fieldset containing capsContainer
+const capsFieldset = capsContainer.parentElement;
+capsFieldset.insertBefore(pickCapContainer, capsContainer);
 
 const pickCapCheckbox = document.getElementById('pick-cap');
 const selectCapDropdown = document.getElementById('select-cap');
@@ -243,7 +243,7 @@ pickCapCheckbox.addEventListener('change', (e) => {
 });
 selectCapDropdown.addEventListener('change', (e) => {
     settings.selectedCapIndex = parseInt(e.target.value);
-    capIndexController.setValue(settings.selectedCapIndex); // Sync with dat.GUI
+    capIndexController.setValue(settings.selectedCapIndex);
 });
 
 function updateCapSelectDropdown() {
