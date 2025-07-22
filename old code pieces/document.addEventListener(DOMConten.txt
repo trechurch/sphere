@@ -1,0 +1,47 @@
+document.addEventListener("DOMContentLoaded", () => {
+  // Error handling
+  const errorDiv = document.getElementById("error");
+  function showError(message) {
+    errorDiv.textContent = message;
+    console.error(message);
+  }
+
+  const sphereRadius = 6371; // Earth's radius in km
+
+  // Check for Three.js
+  if (typeof THREE === "undefined") {
+    showError("Three.js failed to load. Please check the script source.");
+    return;
+  }
+
+  // Scene setup
+  let scene, camera, renderer, controls, sphereMaterial;
+
+  try {
+    scene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera(
+      75,
+      window.innerWidth / window.innerHeight,
+      0.1,
+      20000
+    );
+
+    // ✅ Add renderer setup here
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    // ✅ Define settings next...
+    const settings = {
+      backgroundColor: "#000000",
+      wireframeColor: "#00ff00",
+      rotateSphere: false,
+      preserveTarget: false,
+      resetCamera: () => {
+        if (caps.length > 0) {
+          focusCameraOnCap(caps[caps.length - 1]);
+        } else {
+          resetCameraToDefault();
+        }
+      },
+    };

@@ -1,8 +1,6 @@
 // --- Basic Scene Setup ---
-import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { GUI } from 'dat.gui';
-const sphereRadius = 6371; // Earth's radius in km5
+// [No change] Initial setup remains the same
+const sphereRadius = 6371; // Earth's radius in km
 let scene, camera, renderer, controls, earthMesh, cloudMesh, raycaster, mouse, cameraHelper;
 scene = new THREE.Scene();
 camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 200000);
@@ -56,7 +54,7 @@ scene.add(sunLight);
 
 // --- Camera and Controls ---
 // [Alteration] Ensure controls target Earth’s center, fixing rotation deformation
-controls = new OrbitControls(camera, renderer.domElement);
+controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.05;
 controls.minDistance = sphereRadius + 100;
