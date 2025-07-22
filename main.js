@@ -1,9 +1,10 @@
 // --- Basic Scene Setup ---
 const sphereRadius = 6371; // Earth's radius in km
-let scene, camera, renderer, controls, earthMesh, cloudMesh, raycaster, mouse;
+let scene, camera, renderer, controls, earthMesh, cloudMesh, raycaster, mouse, cameraHelper;
 
 scene = new THREE.Scene();
 camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 200000);
+// camera = new THREE.OrthographicCamera(window.innerWidth / -2, window.innerWidth / 2, window.innerHeight / 2, window.innerHeight / -2, 0.1, 200000); // Uncomment for Orthographic
 renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
@@ -13,6 +14,10 @@ scene.add(earthGroup);
 // Initialize raycaster and mouse for picking
 raycaster = new THREE.Raycaster();
 mouse = new THREE.Vector2();
+
+// Camera helper for debugging
+cameraHelper = new THREE.CameraHelper(camera);
+scene.add(cameraHelper);
 
 // Use a TextureLoader for all textures
 const textureLoader = new THREE.TextureLoader();
@@ -64,7 +69,8 @@ controls.minDistance = sphereRadius + 100;
 const fovInRadians = camera.fov * (Math.PI / 180);
 controls.maxDistance = (16 * sphereRadius) / Math.tan(fovInRadians / 2);
 controls.rotateSpeed = 0.5;
-controls.enablePan = true;
+controls.enablePan = false;
+controls.target.set(0, 0, 0);
 
 // --- Data and State Management ---
 const settings = {
@@ -73,11 +79,34 @@ const settings = {
     preserveTarget: false,
     pickCap: false,
     selectedCapIndex: 0,
+    useOrthographic: false,
     resetCamera: () => {
         resetCameraToDefault();
     },
-    toggleUI: () => toggleControlPanel()
+    toggleUI: () => toggleControlPanel(),
+    toggleCamera: () => {
+        settings.useOrthographic = !settings.useOrthographic;
+        updateCamera();
+    }
 };
+
+function updateCamera() {
+    scene.remove(cameraHelper);
+    if (settings.useOrthographic) {
+        camera = new THREE.OrthographicCamera(
+            window.innerWidth / -2, window.innerWidth / 2,
+            window.innerHeight / 2, window.innerHeight / -2,
+            0.1, 200000
+        );
+    } else {
+        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 200000);
+    }
+    camera.position.set(0, 0, sphereRadius * 3);
+    controls.object = camera;
+    cameraHelper = new THREE.CameraHelper(camera);
+    scene.add(cameraHelper);
+    resetCameraToDefault();
+}
 
 function latLonToXY(lat, lon) {
     const latRad = (lat * Math.PI) / 180;
@@ -88,14 +117,21 @@ function latLonToXY(lat, lon) {
     return { x, y, z };
 }
 
+function xyToLatLon(x, y) {
+    const r = Math.sqrt(x * x + y * y);
+    const lat = Math.asin(y / sphereRadius) * (180 / Math.PI);
+    const lon = Math.atan2(x, r * Math.cos(Math.asin(y / sphereRadius))) * (180 / Math.PI);
+    return { lat, lon };
+}
+
 const houstonCoords = latLonToXY(29.76, -95.36);
 let caps = [{
-    x: houstonCoords.x, y: houstonCoords.y, z: 0, size: 2, direction: "N",
-    xScaler: 4, yScaler: 4, zScaler: 0, sizeScaler: 2, mesh: null,
+    x: houstonCoords.x, y: houstonCoords.y, h: 0, size: 2, direction: "N",
+    xScaler: 4, yScaler: 4, hScaler: 0, sizeScaler: 2, mesh: null,
 }];
 
 const xyScalers = [0.1, 0.3, 0.5, 0.7, 1];
-const sizeScalers = [0.0028, 0.0088, 0.028, 0.396, 0.992];
+const sizeScalers = [0.05, 0.1, 0.2, 0.5, 1];
 const directions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
 const directionColors = {
     "N": 0xff0000, "NE": 0xffa500, "E": 0xffff00, "SE": 0x00ff00,
@@ -103,12 +139,12 @@ const directionColors = {
 };
 
 const xyScalerLabels = { "0.1x": 0, "0.3x": 1, "0.5x": 2, "0.7x": 3, "1x": 4 };
-const sizeScalerLabels = { "Neighborhood": 0, "Small Town": 1, "Large City": 2, "State": 3, "Continent": 4 };
+const sizeScalerLabels = { "Tiny": 0, "Small": 1, "Medium": 2, "Large": 3, "Huge": 4 };
 
 // --- Core 3D and UI Functions ---
 function resetCameraToDefault() {
     camera.position.set(0, 0, sphereRadius * 3);
-    controls.target.set(0, 0, 0); // Always reset to Earth's center
+    controls.target.set(0, 0, 0);
     controls.update();
 }
 
@@ -116,7 +152,7 @@ function focusCameraOnCap(cap) {
     if (!cap.mesh) return;
     const capPosition = new THREE.Vector3();
     cap.mesh.getWorldPosition(capPosition);
-    const camDistance = sphereRadius * 3;
+    const camDistance = sphereRadius * 2;
     const cameraPosition = capPosition.clone().normalize().multiplyScalar(sphereRadius + camDistance);
     camera.position.copy(cameraPosition);
     controls.target.copy(capPosition);
@@ -126,9 +162,10 @@ function focusCameraOnCap(cap) {
 function createCap(cap) {
     if (cap.mesh) earthGroup.remove(cap.mesh);
 
-    const positionVector = new THREE.Vector3(cap.x, cap.y, cap.z).normalize();
-    const scaledHeight = cap.z * xyScalers[cap.zScaler];
-    const scaledSize = cap.size * sizeScalers[cap.sizeScaler];
+    // Convert x, y to spherical coordinates for surface position
+    const { lat, lon } = xyToLatLon(cap.x * xyScalers[cap.xScaler], cap.y * xyScalers[cap.yScaler]);
+    const positionVector = new THREE.Vector3(...Object.values(latLonToXY(lat, lon))).normalize();
+    const scaledHeight = cap.h * xyScalers[cap.hScaler];
 
     const upVector = new THREE.Vector3(0, 1, 0);
     const quaternion = new THREE.Quaternion().setFromUnitVectors(upVector, positionVector);
@@ -136,32 +173,39 @@ function createCap(cap) {
     const capMesh = new THREE.Group();
     capMesh.position.copy(positionVector.multiplyScalar(sphereRadius + scaledHeight));
 
-    const capGeo = new THREE.SphereGeometry(100 * scaledSize, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2);
-    const capEdges = new THREE.EdgesGeometry(capGeo);
+    const capGeo = new THREE.CircleGeometry(500 * cap.size * sizeScalers[cap.sizeScaler], 32);
+    const capMat = new THREE.MeshBasicMaterial({
+        color: directionColors[cap.direction] || 0xff0000,
+        transparent: true,
+        opacity: 0.9,
+        side: THREE.DoubleSide
+    });
+    const capMeshMain = new THREE.Mesh(capGeo, capMat);
     
     const directionAngle = directions.indexOf(cap.direction) * (Math.PI / 4);
-    const capMat = new THREE.LineBasicMaterial({ 
-        color: directionColors[cap.direction] || 0xff0000, 
-        transparent: true, 
-        opacity: 0.9 
-    });
-    const capLines = new THREE.LineSegments(capEdges, capMat);
-    
-    const directionGeo = new THREE.SphereGeometry(100 * scaledSize, 32, 16, 
-        directionAngle - Math.PI/8, Math.PI/4, 0, Math.PI / 2);
+    const directionGeo = new THREE.BufferGeometry();
+    const vertices = new Float32Array([
+        0, 0, 0,
+        500 * cap.size * sizeScalers[cap.sizeScaler] * Math.cos(directionAngle),
+        500 * cap.size * sizeScalers[cap.sizeScaler] * Math.sin(directionAngle), 0,
+        500 * cap.size * sizeScalers[cap.sizeScaler] * Math.cos(directionAngle + Math.PI / 8),
+        500 * cap.size * sizeScalers[cap.sizeScaler] * Math.sin(directionAngle + Math.PI / 8), 0
+    ]);
+    directionGeo.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
     const directionMat = new THREE.MeshBasicMaterial({
         color: directionColors[cap.direction] || 0xff0000,
         transparent: true,
-        opacity: 0.7
+        opacity: 0.7,
+        side: THREE.DoubleSide
     });
     const directionMesh = new THREE.Mesh(directionGeo, directionMat);
     
-    capMesh.add(capLines);
+    capMesh.add(capMeshMain);
     capMesh.add(directionMesh);
     capMesh.quaternion.copy(quaternion);
     
-    capMesh.userData.size = scaledSize;
-    capMesh.userData.originalPosition = { x: cap.x, y: cap.y, z: cap.z };
+    capMesh.userData.size = cap.size * sizeScalers[cap.sizeScaler];
+    capMesh.userData.originalPosition = { x: cap.x, y: cap.y, h: cap.h };
     cap.mesh = capMesh;
     earthGroup.add(capMesh);
 }
@@ -187,7 +231,7 @@ function onMouseClick(event) {
         if (selectedCap) {
             selectedCap.x = point.x;
             selectedCap.y = point.y;
-            selectedCap.z = point.z;
+            selectedCap.h = 0;
             updateAndFocus(selectedCap);
             renderHtmlCapsUI();
         }
@@ -211,6 +255,7 @@ gui.add(settings, "rotateSphere").name("Rotate Earth").onChange(v => settings.ro
 gui.add(settings, "preserveTarget").onChange(v => settings.preserveTarget = v);
 gui.add(settings, "resetCamera").name("Reset Camera");
 gui.add(settings, "pickCap").name("Pick Cap Location").onChange(v => settings.pickCap = v);
+gui.add(settings, "useOrthographic").name("Use Orthographic Camera").onChange(v => settings.toggleCamera());
 const capIndexController = gui.add(settings, "selectedCapIndex", 0, Math.max(0, caps.length - 1)).name("Select Cap").step(1)
     .onChange(v => {
         settings.selectedCapIndex = Math.floor(v);
@@ -261,8 +306,8 @@ function updateCapSelectDropdown() {
 
 document.getElementById('add-cap-btn').addEventListener('click', () => {
     caps.push({
-        x: (Math.random() - 0.5) * 8000, y: (Math.random() - 0.5) * 8000, z: 0, size: 1, direction: "N",
-        xScaler: 4, yScaler: 4, zScaler: 0, sizeScaler: 1, mesh: null,
+        x: (Math.random() - 0.5) * 8000, y: (Math.random() - 0.5) * 8000, h: 0, size: 1, direction: "N",
+        xScaler: 4, yScaler: 4, hScaler: 0, sizeScaler: 1, mesh: null,
     });
     settings.selectedCapIndex = caps.length - 1;
     capIndexController.setValue(settings.selectedCapIndex);
@@ -280,11 +325,11 @@ function renderHtmlCapsUI() {
         const controlsMap = [
             { prop: 'x', type: 'range', min: -sphereRadius, max: sphereRadius, step: 1 },
             { prop: 'y', type: 'range', min: -sphereRadius, max: sphereRadius, step: 1 },
-            { prop: 'z', type: 'range', min: 0, max: 100, step: 1 },
+            { prop: 'h', type: 'range', min: 0, max: 100, step: 1 },
             { prop: 'size', type: 'range', min: 0.1, max: 5, step: 0.1 },
             { prop: 'xScaler', type: 'select', options: xyScalerLabels },
             { prop: 'yScaler', type: 'select', options: xyScalerLabels },
-            { prop: 'zScaler', type: 'select', options: xyScalerLabels },
+            { prop: 'hScaler', type: 'select', options: xyScalerLabels },
             { prop: 'sizeScaler', type: 'select', options: sizeScalerLabels },
             { prop: 'direction', type: 'select', options: directions },
         ];
@@ -354,9 +399,10 @@ function animate() {
 
         caps.forEach(cap => {
             if (cap.mesh) {
-                const originalPos = new THREE.Vector3(cap.x, cap.y, cap.z).normalize();
-                const rotatedPos = originalPos.clone().applyQuaternion(rotationQuaternion);
-                const scaledHeight = cap.z * xyScalers[cap.zScaler];
+                const { lat, lon } = xyToLatLon(cap.x * xyScalers[cap.xScaler], cap.y * xyScalers[cap.yScaler]);
+                const positionVector = new THREE.Vector3(...Object.values(latLonToXY(lat, lon))).normalize();
+                const rotatedPos = positionVector.clone().applyQuaternion(rotationQuaternion);
+                const scaledHeight = cap.h * xyScalers[cap.hScaler];
                 cap.mesh.position.copy(rotatedPos.multiplyScalar(sphereRadius + scaledHeight));
                 const upVector = new THREE.Vector3(0, 1, 0);
                 const quaternion = new THREE.Quaternion().setFromUnitVectors(upVector, rotatedPos.normalize());
@@ -379,6 +425,12 @@ animate();
 
 window.addEventListener("resize", () => {
     camera.aspect = window.innerWidth / window.innerHeight;
+    if (settings.useOrthographic) {
+        camera.left = window.innerWidth / -2;
+        camera.right = window.innerWidth / 2;
+        camera.top = window.innerHeight / 2;
+        camera.bottom = window.innerHeight / -2;
+    }
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
 });
