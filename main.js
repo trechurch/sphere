@@ -148,9 +148,10 @@ function createCap(cap, index) {
     if (cap.mesh) earthGroup.remove(cap.mesh);
 
     const scaledHeight = cap.h * xyScalers[cap.hScaler];
-    const positionVector = latLonToVector3(cap.lat * xyScalers[cap.xScaler], cap.lon * xyScalers[cap.yScaler], scaledHeight);
+    const positionVector = latLonToVector3(cap.lat, cap.lon, scaledHeight); // Removed xyScalers from lat/lon
     const upVector = new THREE.Vector3(0, 1, 0);
-    const quaternion = new THREE.Quaternion().setFromUnitVectors(upVector, positionVector.clone().normalize());
+    const normalVector = positionVector.clone().normalize();
+    const quaternion = new THREE.Quaternion().setFromUnitVectors(upVector, normalVector);
 
     const capMesh = new THREE.Group();
     capMesh.position.copy(positionVector);
@@ -165,17 +166,19 @@ function createCap(cap, index) {
         opacity: 0.9,
         side: THREE.DoubleSide
     });
+    capMat.needsUpdate = true; // Force material update
     const capMeshMain = new THREE.Mesh(capGeo, capMat);
 
     // Directional indicator
     const directionAngle = directions.indexOf(cap.direction) * (Math.PI / 4);
-    const directionGeo = new THREE.SphereGeometry(capRadius, 32, 16, directionAngle - Math.PI / 8, Math.PI / 4, 0, thetaLength * 1.1); // Slightly larger
+    const directionGeo = new THREE.SphereGeometry(capRadius, 32, 16, directionAngle - Math.PI / 8, Math.PI / 4, 0, thetaLength * 1.1);
     const directionMat = new THREE.MeshBasicMaterial({
         color: directionColors[cap.direction],
         transparent: true,
         opacity: 0.5,
         side: THREE.DoubleSide
     });
+    directionMat.needsUpdate = true;
     const directionMesh = new THREE.Mesh(directionGeo, directionMat);
 
     capMesh.add(capMeshMain);
@@ -186,6 +189,8 @@ function createCap(cap, index) {
     capMesh.userData.originalPosition = { lat: cap.lat, lon: cap.lon, h: cap.h };
     cap.mesh = capMesh;
     earthGroup.add(capMesh);
+
+    console.log(`Cap ${index + 1} created with color: ${capColors[index % capColors.length].toString(16)}`);
 }
 
 function updateCap(cap, index) {
@@ -341,7 +346,7 @@ try {
                     el.min = min;
                     el.max = max;
                     el.step = step;
-                    el.value = Math.max(min, Math.min(max, cap[prop])); // Constrain h >= 0
+                    el.value = Math.max(min, Math.min(max, cap[prop]));
                     const valueDisplay = el.previousElementSibling?.querySelector('.value-display');
                     if (valueDisplay) valueDisplay.textContent = el.value;
                     el.addEventListener('input', (e) => {
@@ -414,7 +419,7 @@ function animate() {
         caps.forEach((cap, index) => {
             if (cap.mesh) {
                 const scaledHeight = cap.h * xyScalers[cap.hScaler];
-                const positionVector = latLonToVector3(cap.lat * xyScalers[cap.xScaler], cap.lon * xyScalers[cap.yScaler], scaledHeight);
+                const positionVector = latLonToVector3(cap.lat, cap.lon, scaledHeight);
                 cap.mesh.position.copy(positionVector);
                 const upVector = new THREE.Vector3(0, 1, 0);
                 const quaternion = new THREE.Quaternion().setFromUnitVectors(upVector, positionVector.clone().normalize());
