@@ -64,7 +64,7 @@ controls.minDistance = sphereRadius + 100;
 const fovInRadians = camera.fov * (Math.PI / 180);
 controls.maxDistance = (16 * sphereRadius) / Math.tan(fovInRadians / 2);
 controls.rotateSpeed = 0.5;
-controls.enablePan = false;
+controls.enablePan = true;
 
 // --- Data and State Management ---
 const settings = {
@@ -254,7 +254,7 @@ function updateCapSelectDropdown() {
     selectCapDropdown.innerHTML = '';
     caps.forEach((_, index) => {
         const option = new Option(`Cap ${index + 1}`, index);
-        selectCapDropdow
+        selectCapDropdown
 n.add(option);
     });
     selectCapDropdown.value = settings.selectedCapIndex;
