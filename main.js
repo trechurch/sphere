@@ -147,14 +147,14 @@ const capColors = [
     0x00ffff // Cyan
 ];
 
-const xyScalers = [0.1, 0.3, 0.5, 0.7, 1];
+const xyScalers = [0.1, 1, 10, 100, 1000];
 const sizeScalers = [0.05, 0.1, 0.2, 0.5, 1];
 const directions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
 const directionColors = {
     "N": 0xffffff, "NE": 0xffffff, "E": 0xffffff, "SE": 0xffffff,
     "S": 0xffffff, "SW": 0xffffff, "W": 0xffffff, "NW": 0xffffff
 };
-const xyScalerLabels = { "0.1x": 0, "0.3x": 1, "0.5x": 2, "0.7x": 3, "1x": 4 };
+const xyScalerLabels = { "0.1x": 0, "1x": 1, "10x": 2, "100x": 3, "1000x": 4 };
 const sizeScalerLabels = { "Tiny": 0, "Small": 1, "Medium": 2, "Large": 3, "Huge": 4 };
 
 function resetCameraToDefault() {
@@ -222,9 +222,10 @@ function createCap(cap, index) {
     const capMesh = new THREE.Group();
     capMesh.position.copy(positionVector);
 
-    // Spherical cap with Earth's curvature
+    // Spherical cap with fixed radius for visualization
+    const capRadius = 100; // Small radius for cap appearance
     const thetaLength = cap.size * sizeScalers[cap.sizeScaler] * Math.PI / 180;
-    const capGeo = new THREE.SphereGeometry(sphereRadius, 32, 16, 0, Math.PI * 2, 0, thetaLength);
+    const capGeo = new THREE.SphereGeometry(capRadius, 32, 16, 0, Math.PI * 2, 0, thetaLength);
     capGeo.needsUpdate = true;
     const capMat = new THREE.MeshBasicMaterial({
         color: capColors[index % capColors.length],
@@ -237,7 +238,7 @@ function createCap(cap, index) {
 
     // Directional indicator
     const directionAngle = directions.indexOf(cap.direction) * (Math.PI / 4);
-    const directionGeo = new THREE.SphereGeometry(sphereRadius, 32, 16, directionAngle - Math.PI / 8, Math.PI / 4, 0, thetaLength * 1.1);
+    const directionGeo = new THREE.SphereGeometry(capRadius, 32, 16, directionAngle - Math.PI / 8, Math.PI / 4, 0, thetaLength * 1.1);
     directionGeo.needsUpdate = true;
     const directionMat = new THREE.MeshBasicMaterial({
         color: directionColors[cap.direction],
@@ -257,7 +258,7 @@ function createCap(cap, index) {
     cap.mesh = capMesh;
     earthGroup.add(capMesh);
 
-    console.log(`Cap ${index + 1} created at lat: ${cap.lat}, lon: ${cap.lon}, color: ${capColors[index % capColors.length].toString(16)}`);
+    console.log(`Cap ${index + 1} created at lat: ${cap.lat}, lon: ${cap.lon}, height: ${scaledHeight}, color: ${capColors[index % capColors.length].toString(16)}`);
 }
 
 function updateCap(cap, index) {
@@ -521,18 +522,8 @@ function animate() {
 
     if (settings.rotateSphere) {
         const rotationQuaternion = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), elapsedTime * 0.25);
-        earthMesh.quaternion.copy(rotationQuaternion);
+        earthGroup.quaternion.copy(rotationQuaternion); // Rotate entire earthGroup
         cloudMesh.quaternion.copy(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), elapsedTime * 0.28));
-        caps.forEach((cap, index) => {
-            if (cap.mesh) {
-                const scaledHeight = cap.h * xyScalers[cap.hScaler];
-                const positionVector = latLonToVector3(cap.lat, cap.lon, scaledHeight);
-                cap.mesh.position.copy(positionVector);
-                const upVector = new THREE.Vector3(0, 1, 0);
-                const quaternion = new THREE.Quaternion().setFromUnitVectors(upVector, positionVector.clone().normalize());
-                cap.mesh.quaternion.copy(quaternion);
-            }
-        });
         moonMesh.position.set(moonDistance * Math.cos(elapsedTime * 0.1), 0, moonDistance * Math.sin(elapsedTime * 0.1));
     }
 
