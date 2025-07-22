@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Wireframe Earth with Modular Caps</title>
+    <style>
+      body { margin: 0; overflow: hidden; background-color: #000; }
+      canvas { display: block; }
+      #gui { position: absolute; top: 10px; right: 10px; }
+      #error { position: absolute; top: 10px; left: 10px; color: red; font-family: Arial; }
+    </style>
+  </head>
+  <body>
+    <div id="gui"></div>
+    <div id="error"></div>
+    <script src="https://cdn.jsdelivr.net/npm/dat.gui@0.7.9/build/dat.gui.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/js/controls/OrbitControls.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const errorDiv = document.getElementById("error");
+        function showError(message) {
+          errorDiv.textContent = message;
+          console.error(message);
+        }
+
+        if (typeof THREE === "undefined") {
+          showError("Three.js failed to load.");
+          return;
+        }
+
+        // Earth's radius in km, making the sphere true to scale
+        const sphereRadius = 6371;
+
+        // Scene setup
+        let scene, camera, renderer, controls, sphereMaterial, earthGroup;
+        
+        scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 20000);
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        const settings = {
+          backgroundColor: "#000000",
+          wireframeColor: "#00ff00",
+          rotateSphere: false,
+          preserveTarget: false,
+          resetCamera: () => {
+            if (caps.length > 0) {
+              focusCameraOnCap(caps[caps.length - 1]);
+            } else {
+              resetCameraToDefault();
+            }
+          },
+        };
+
+        const gui = new dat.GUI({ autoPlace: false });
+        document.getElementById("gui").appendChild(gui.domElement);
+        
+        controls = new THREE.OrbitControls(camera, renderer.domElement);
+        
+        function resetCameraToDefault() {
+            camera.position.set(0, 0, sphereRadius * 2);
+            if (!settings.preserveTarget) {
+                controls.target.set(0, 0, 0);
+            }
+            controls.update();
+        }
+
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.minDistance = 100;
+        controls.maxDistance = 20000;
+        resetCameraToDefault();
+
+        earthGroup = new THREE.Group();
+        scene.add(earthGroup);
+
+        gui.addColor(settings, "backgroundColor").onChange((value) => scene.background = new THREE.Color(value));
+        gui.addColor(settings, "wireframeColor").onChange((value) => sphereMaterial.color.set(value));
+        gui.add(settings, "rotateSphere").onChange((value) => earthGroup.userData.rotate = value);
+        gui.add(settings, "resetCamera").name("Reset Camera");
+        gui.add(settings, "preserveTarget").name("Preserve Orbit Anchor");
+
+        const geometry = new THREE.IcosahedronGeometry(sphereRadius, 5);
+        const edges = new THREE.EdgesGeometry(geometry);
+        sphereMaterial = new THREE.LineBasicMaterial({ color: settings.wireframeColor });
+        const sphere = new THREE.LineSegments(edges, sphereMaterial);
+        earthGroup.add(sphere);
+
+        // --- Data & Conversion ---
+        
+        // Converts Lat/Lon (in degrees) to X, Y coordinates for our slider system
+        function latLonToXY(lat, lon) {
+            const latRad = (lat * Math.PI) / 180;
+            const lonRad = (lon * Math.PI) / 180;
+            // In Three.js default view: Y is up, X is right, Z is towards camera
+            const y = sphereRadius * Math.sin(latRad);
+            const x = sphereRadius * Math.cos(latRad) * Math.sin(lonRad);
+            return { x, y };
+        }
+        
+        const houstonCoords = latLonToXY(29.76, -95.36);
+
+        let caps = [{
+            x: houstonCoords.x,
+            y: houstonCoords.y,
+            z: 0, // height
+            size: 2,
+            direction: "N",
+            xScaler: 4, // Index for 1x
+            yScaler: 4, // Index for 1x
+            zScaler: 0, // Index for 0.1x
+            sizeScaler: 2, // "Large City"
+            mesh: null,
+        }];
+
+        const xyScalers = [0.1, 0.3, 0.5, 0.7, 1];
+        const xyScalerLabels = { "0.1x": 0, "0.3x": 1, "0.5x": 2, "0.7x": 3, "1x": 4 };
+        const sizeScalers = [0.00028, 0.00088, 0.0028, 0.0396, 0.992];
+        const sizeScalerLabels = { "Neighborhood": 0, "Small Town": 1, "Large City": 2, "State": 3, "Continent": 4 };
+        const directions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
+
+        // --- Cap Logic ---
+
+        function focusCameraOnCap(cap) {
+            if (!cap.mesh) return;
+            const capPosition = new THREE.Vector3();
+            cap.mesh.getWorldPosition(capPosition);
+            
+            const camDistance = cap.mesh.userData.size * sphereRadius * 3 + sphereRadius;
+            const cameraPosition = capPosition.clone().normalize().multiplyScalar(sphereRadius + Math.max(camDistance, 500));
+            
+            camera.position.copy(cameraPosition);
+            controls.target.copy(capPosition);
+            controls.update();
+        }
+
+        function createCap(cap) {
+            if (cap.mesh) earthGroup.remove(cap.mesh);
+
+            const scaledX = cap.x * xyScalers[cap.xScaler];
+            const scaledY = cap.y * xyScalers[cap.yScaler];
+            const scaledHeight = Math.max(0, cap.z * xyScalers[cap.zScaler]);
+            const scaledSize = Math.max(0.0001, cap.size * sizeScalers[cap.sizeScaler]);
+
+            // Calculate the 3D position vector on the sphere's surface
+            const x_sq = scaledX * scaledX;
+            const y_sq = scaledY * scaledY;
+            const r_sq = sphereRadius * sphereRadius;
+            const z_val = Math.sqrt(Math.max(0, r_sq - x_sq - y_sq));
+            
+            // This vector points from the Earth's center to the cap's location
+            const positionVector = new THREE.Vector3(scaledX, scaledY, z_val).normalize();
+
+            // Use a quaternion to orient the cap correctly
+            const upVector = new THREE.Vector3(0, 1, 0); // The default orientation of SphereGeometry cap
+            const quaternion = new THREE.Quaternion().setFromUnitVectors(upVector, positionVector);
+
+            const capMesh = new THREE.Group();
+            capMesh.position.copy(positionVector.multiplyScalar(sphereRadius));
+            capMesh.quaternion.copy(quaternion);
+
+            const capRadius = sphereRadius + scaledHeight;
+            const thetaLength = scaledSize;
+
+            const capGeometry = new THREE.CylinderGeometry(capRadius, capRadius, 0.1, 32, 1, false, 0, Math.PI * 2);
+            const capMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true });
+            const capCylinder = new THREE.Mesh(capGeometry, capMaterial);
+            
+            const capGeo = new THREE.SphereGeometry(capRadius, 32, 16, 0, Math.PI * 2, 0, thetaLength);
+            const capEdges = new THREE.EdgesGeometry(capGeo);
+            const capMat = new THREE.LineBasicMaterial({ color: 0xff0000 });
+            const capLines = new THREE.LineSegments(capEdges, capMat);
+            capMesh.add(capLines);
+            
+            capMesh.userData.size = scaledSize; // Store for camera focusing
+            
+            cap.mesh = capMesh;
+            earthGroup.add(capMesh); // Add to the group so it rotates with Earth
+        }
+        
+        function updateAndFocus(cap) {
+            createCap(cap);
+            focusCameraOnCap(cap);
+        }
+
+        // --- GUI Setup ---
+
+        const capFolder = gui.addFolder("Caps");
+        const addCapController = {
+            addCap: () => {
+                caps.push({
+                    x: (Math.random() - 0.5) * 8000,
+                    y: (Math.random() - 0.5) * 8000,
+                    z: 0, size: 1, direction: "N",
+                    xScaler: 4, yScaler: 4, zScaler: 0, sizeScaler: 1,
+                    mesh: null,
+                });
+                updateCapGUI();
+                const newCap = caps[caps.length - 1];
+                updateAndFocus(newCap);
+            }
+        };
+        capFolder.add(addCapController, "addCap").name("Add New Cap");
+
+        let capGuiFolders = [];
+        function updateCapGUI() {
+            capGuiFolders.forEach(folder => capFolder.removeFolder(folder));
+            capGuiFolders = [];
+
+            caps.forEach((cap, index) => {
+                const folder = capFolder.addFolder(`Cap ${index + 1}`);
+                capGuiFolders.push(folder);
+
+                folder.add(cap, "x", -sphereRadius, sphereRadius, 1).name("X").onChange(() => updateAndFocus(cap));
+                folder.add(cap, "y", -sphereRadius, sphereRadius, 1).name("Y").onChange(() => updateAndFocus(cap));
+                folder.add(cap, "z", 0, 1000, 1).name("Height").onChange(() => updateAndFocus(cap));
+                folder.add(cap, "size", 0.1, 5, 0.1).name("Size").onChange(() => updateAndFocus(cap));
+                
+                folder.add(cap, "xScaler", xyScalerLabels).name("X Scaler").onChange(() => updateAndFocus(cap));
+                folder.add(cap, "yScaler", xyScalerLabels).name("Y Scaler").onChange(() => updateAndFocus(cap));
+                folder.add(cap, "zScaler", xyScalerLabels).name("Height Scaler").onChange(() => updateAndFocus(cap));
+                folder.add(cap, "sizeScaler", sizeScalerLabels).name("Size Scaler").onChange(() => updateAndFocus(cap));
+                
+                folder.add(cap, "direction", directions).name("Direction").onChange(() => createCap(cap));
+                folder.add({ remove: () => {
+                    if (cap.mesh) earthGroup.remove(cap.mesh);
+                    caps.splice(index, 1);
+                    updateCapGUI();
+                }}, "remove").name("Remove Cap");
+
+                folder.open();
+            });
+        }
+        
+        // --- Animation Loop ---
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            if (earthGroup.userData.rotate) {
+                earthGroup.rotation.y += 0.0005; // Slowed down for a gentle spin
+            }
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // Initial setup
+        updateCapGUI();
+        caps.forEach(createCap);
+        focusCameraOnCap(caps[0]); // Focus on Houston initially
+        animate();
+
+        window.addEventListener("resize", () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+      });
+    </script>
+  </body>
+</html>
