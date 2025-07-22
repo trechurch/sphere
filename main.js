@@ -254,8 +254,7 @@ function updateCapSelectDropdown() {
     selectCapDropdown.innerHTML = '';
     caps.forEach((_, index) => {
         const option = new Option(`Cap ${index + 1}`, index);
-        selectCapDropdown
-n.add(option);
+        selectCapDropdown.add(option);
     });
     selectCapDropdown.value = settings.selectedCapIndex;
 }
