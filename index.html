@@ -6,6 +6,15 @@
     <title>3D Earth Visualization</title>
     <link rel="stylesheet" href="style.css" />
     <!-- Load core Three.js -->
+    <script type="importmap" id="importmap">{
+          "imports": {
+          "three": "https://unpkg.com/three@0.134.0/build/three.module.js",
+          "three/examples/jsm/controls/OrbitControls.js": "https://unpkg.com/three@0.134.0/examples/jsm/controls/OrbitControls.js",
+          "dat.gui": "https://cdn.skypack.dev/dat.gui"
+        }
+      }
+    </script>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
     <!-- Load dat.GUI -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.7/dat.gui.min.js"></script>
