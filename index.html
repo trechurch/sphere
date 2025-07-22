@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Earth Visualization</title>
+    <title>3D Earth Visualization</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="dat-gui-container"></div>
+    <div id="dat-gui-container" class="controls hidden"></div>
     <div id="html-controls" class="controls">
         <div class="panel-header">
             <h3>HTML Controls</h3>
@@ -16,80 +16,75 @@
         <fieldset>
             <legend>Global Settings</legend>
             <div class="control-row">
-                <label for="bg-color">Background</label>
+                <label>Background</label>
                 <input type="color" id="bg-color" value="#000000">
             </div>
             <div class="control-row">
-                <label for="rotate-sphere">Rotate Earth</label>
-                <input type="checkbox" id="rotate-sphere" checked>
+                <label>Rotate Earth</label>
+                <input type="checkbox" id="rotate-sphere">
             </div>
             <div class="control-row">
-                <label for="preserve-target">Preserve Anchor</label>
+                <label>Preserve Anchor</label>
                 <input type="checkbox" id="preserve-target">
             </div>
             <div class="control-row">
-                <button id="reset-camera-btn" class="full-width">Reset Camera</button>
+                <button id="reset-camera-btn">Reset Camera</button>
             </div>
         </fieldset>
         <fieldset>
             <legend>Caps</legend>
-            <div id="caps-container"></div>
             <div class="control-row">
-                <button id="add-cap-btn" class="full-width">Add New Cap</button>
+                <button id="add-cap-btn">Add New Cap</button>
             </div>
+            <div id="caps-container"></div>
         </fieldset>
     </div>
-
     <template id="cap-template">
         <div class="cap-controls">
-            <h4 class="cap-title">Cap</h4>
+            <h4 class="cap-title"></h4>
             <div class="control-grid">
-                <div class="control-row">
+                <div class="control-row-stacked">
                     <label>X: <span class="value-display"></span></label>
-                    <input type="range" data-property="x">
+                    <input type="range" data-property="x" min="-6371" max="6371" step="1">
                 </div>
-                <div class="control-row">
+                <div class="control-row-stacked">
                     <label>Y: <span class="value-display"></span></label>
-                    <input type="range" data-property="y">
+                    <input type="range" data-property="y" min="-6371" max="6371" step="1">
                 </div>
-                <div class="control-row">
+                <div class="control-row-stacked">
                     <label>Height: <span class="value-display"></span></label>
-                    <input type="range" data-property="h">
+                    <input type="range" data-property="h" min="0" max="100" step="1">
                 </div>
-                <div class="control-row">
+                <div class="control-row-stacked">
                     <label>Size: <span class="value-display"></span></label>
-                    <input type="range" data-property="size">
+                    <input type="range" data-property="size" min="0.1" max="5" step="0.1">
                 </div>
-                <div class="control-row">
+                <div class="control-row-stacked">
                     <label>X Scaler</label>
                     <select data-property="xScaler"></select>
                 </div>
-                <div class="control-row">
+                <div class="control-row-stacked">
                     <label>Y Scaler</label>
                     <select data-property="yScaler"></select>
                 </div>
-                <div class="control-row">
+                <div class="control-row-stacked">
                     <label>Height Scaler</label>
                     <select data-property="hScaler"></select>
                 </div>
-                <div class="control-row">
+                <div class="control-row-stacked">
                     <label>Size Scaler</label>
                     <select data-property="sizeScaler"></select>
                 </div>
-                <div class="control-row">
+                <div class="control-row-stacked">
                     <label>Direction</label>
                     <select data-property="direction"></select>
                 </div>
-                <div class="control-row">
-                    <button class="remove-cap-btn full-width">Remove Cap</button>
-                </div>
             </div>
+            <button class="remove-cap-btn full-width">Remove Cap</button>
         </div>
     </template>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.7/dat.gui.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <script src="main.js"></script>
 </body>
 </html>
