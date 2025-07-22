@@ -3,10 +3,10 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GUI } from 'dat.gui';
 
 const sphereRadius = 6371; // Earth's radius in km
-const moonDistance = 384400; // Moon's average distance in km
-let scene, camera, renderer, controls, earthMesh, cloudMesh, moonMesh, raycaster, mouse, cameraHelper;
+const moonDistance = 20000; // Closer for testing
+let scene, camera, renderer, controls, earthMesh, cloudMesh, moonMesh, moonDebugMesh, raycaster, mouse, cameraHelper;
 scene = new THREE.Scene();
-camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 500000);
+camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000000);
 renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
@@ -21,7 +21,7 @@ scene.add(cameraHelper);
 const textureLoader = new THREE.TextureLoader();
 
 // Starfield
-const starGeometry = new THREE.SphereGeometry(400000, 64, 64);
+const starGeometry = new THREE.SphereGeometry(800000, 64, 64);
 const starMaterial = new THREE.MeshBasicMaterial({ map: textureLoader.load('texture/galaxy.png'), side: THREE.BackSide });
 const starMesh = new THREE.Mesh(starGeometry, starMaterial);
 scene.add(starMesh);
@@ -40,16 +40,23 @@ cloudMesh = new THREE.Mesh(cloudGeometry, cloudMaterial);
 earthGroup.add(cloudMesh);
 
 // Moon mesh
-const moonGeometry = new THREE.SphereGeometry(1737.4, 32, 32); // Moon's radius in km
+const moonGeometry = new THREE.SphereGeometry(1737.4, 32, 32);
 const moonMaterial = new THREE.MeshPhongMaterial({
-    color: 0xaaaaaa,
-    emissive: 0x222222,
-    emissiveIntensity: 0.2,
+    map: textureLoader.load('texture/moonmap.jpg'), // Use moon texture
+    emissive: 0x444444,
+    emissiveIntensity: 0.5,
     shininess: 10
 });
 moonMesh = new THREE.Mesh(moonGeometry, moonMaterial);
-moonMesh.position.set(moonDistance, 0, 0); // Simplified position in orbital plane
+moonMesh.position.set(0, 0, moonDistance); // Initial position on Z-axis
 scene.add(moonMesh);
+
+// Moon debug wireframe
+const moonDebugGeometry = new THREE.SphereGeometry(1737.4, 16, 16);
+const moonDebugMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true });
+moonDebugMesh = new THREE.Mesh(moonDebugGeometry, moonDebugMaterial);
+moonDebugMesh.position.copy(moonMesh.position);
+scene.add(moonDebugMesh);
 
 // Lighting
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
@@ -63,8 +70,7 @@ controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.05;
 controls.minDistance = sphereRadius + 100;
-const fovInRadians = camera.fov * (Math.PI / 180);
-controls.maxDistance = (16 * sphereRadius) / Math.tan(fovInRadians / 2);
+controls.maxDistance = 800000;
 controls.rotateSpeed = 0.5;
 controls.enablePan = false;
 controls.target.set(0, 0, 0);
@@ -96,9 +102,9 @@ let cameraLerp = {
 function updateCamera() {
     scene.remove(cameraHelper);
     if (settings.useOrthographic) {
-        camera = new THREE.OrthographicCamera(window.innerWidth / -2, window.innerWidth / 2, window.innerHeight / 2, window.innerHeight / -2, 0.1, 500000);
+        camera = new THREE.OrthographicCamera(window.innerWidth / -2, window.innerWidth / 2, window.innerHeight / 2, window.innerHeight / -2, 0.1, 1000000);
     } else {
-        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 500000);
+        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000000);
     }
     camera.position.set(0, 0, sphereRadius * 3);
     controls.object = camera;
@@ -133,8 +139,8 @@ const cityCoords = {
 
 // Initial caps
 let caps = [
-    { lat: cityCoords.houston.lat, lon: cityCoords.houston.lon, h: 0, size: 0.1, direction: "N", xScaler: 4, yScaler: 4, hScaler: 4, sizeScaler: 2, mesh: null },
-    { lat: cityCoords["new-york"].lat, lon: cityCoords["new-york"].lon, h: 0, size: 0.1, direction: "N", xScaler: 4, yScaler: 4, hScaler: 4, sizeScaler: 2, mesh: null }
+    { lat: cityCoords.houston.lat, lon: cityCoords.houston.lon, h: 0, size: 1, direction: "N", xScaler: 4, yScaler: 4, hScaler: 4, sizeScaler: 2, mesh: null },
+    { lat: cityCoords["new-york"].lat, lon: cityCoords["new-york"].lon, h: 0, size: 1, direction: "N", xScaler: 4, yScaler: 4, hScaler: 4, sizeScaler: 2, mesh: null }
 ];
 
 // Color cycle for caps
@@ -148,7 +154,7 @@ const capColors = [
 ];
 
 const xyScalers = [0.1, 1, 10, 100, 1000];
-const sizeScalers = [0.05, 0.1, 0.2, 0.5, 1];
+const sizeScalers = [0.5, 1, 2, 5, 10]; // Increased for visibility
 const directions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
 const directionColors = {
     "N": 0xffffff, "NE": 0xffffff, "E": 0xffffff, "SE": 0xffffff,
@@ -181,7 +187,7 @@ function lerpCamera(anchor) {
             cameraLerp.targetTarget.set(0, -sphereRadius, 0);
             break;
         case "binary-center":
-            cameraLerp.targetPosition.set(moonDistance / 2, 0, sphereRadius * 3);
+            cameraLerp.targetPosition.set(moonDistance / 2, 0, sphereRadius * 10);
             cameraLerp.targetTarget.set(moonDistance / 2, 0, 0);
             break;
         default: // Cap index
@@ -210,55 +216,170 @@ function focusCameraOnCap(cap) {
     cameraLerp.startTarget.copy(controls.target);
 }
 
+
+<div class="control-grid">
+    <div class="control-row-stacked">
+        <label>Direction</label>
+        <select data-property="direction"></select>
+    </div>
+    <div class="control-row-stacked">
+        <label>Shape</label>
+        <select data-property="shape">
+            <option value="sphere-cap">Sphere Cap</option>
+            <option value="cylinder">Cylinder</option>
+        </select>
+    </div>
+</div>
+
+
+
+// In main.js, inside the renderHtmlCapsUI function
+
+// 1. Add 'shape' to the controlsMap array
+const controlsMap = [
+    // ... other controls
+    { prop: 'direction', type: 'select', options: directions },
+    { prop: 'shape', type: 'select', options: { 'Sphere Cap': 'sphere-cap', 'Cylinder': 'cylinder' } }, // Add this line
+];
+
+// 2. Modify the event listener for 'select' elements to handle string values
+el.addEventListener('change', (e) => {
+    const val = e.target.value;
+    // Check if the source option values are numeric (like for scalers) or strings (like for shape)
+    if (Array.isArray(options) || isNaN(parseInt(Object.values(options)[0]))) {
+        cap[prop] = val; // Handle string values for direction and shape
+    } else {
+        cap[prop] = parseInt(val); // Handle numeric values for scalers
+    }
+    updateAndFocus(cap, index);
+});
 function createCap(cap, index) {
     if (cap.mesh) earthGroup.remove(cap.mesh);
 
     const scaledHeight = cap.h * xyScalers[cap.hScaler];
-    const positionVector = latLonToVector3(cap.lat, cap.lon, scaledHeight);
-    const upVector = new THREE.Vector3(0, 1, 0);
-    const normalVector = positionVector.clone().normalize();
-    const quaternion = new THREE.Quaternion().setFromUnitVectors(upVector, normalVector);
 
-    const capMesh = new THREE.Group();
-    capMesh.position.copy(positionVector);
+    // Create the main group that will be positioned and oriented
+    const capGroup = new THREE.Group();
+    capGroup.userData.originalPosition = { lat: cap.lat, lon: cap.lon, h: cap.h };
+    cap.mesh = capGroup;
+    earthGroup.add(capGroup);
 
-    // Spherical cap with fixed radius for visualization
-    const capRadius = 100; // Small radius for cap appearance
-    const thetaLength = cap.size * sizeScalers[cap.sizeScaler] * Math.PI / 180;
-    const capGeo = new THREE.SphereGeometry(capRadius, 32, 16, 0, Math.PI * 2, 0, thetaLength);
-    capGeo.needsUpdate = true;
     const capMat = new THREE.MeshBasicMaterial({
         color: capColors[index % capColors.length],
         transparent: true,
         opacity: 0.9,
         side: THREE.DoubleSide
     });
-    capMat.needsUpdate = true;
-    const capMeshMain = new THREE.Mesh(capGeo, capMat);
 
-    // Directional indicator
-    const directionAngle = directions.indexOf(cap.direction) * (Math.PI / 4);
-    const directionGeo = new THREE.SphereGeometry(capRadius, 32, 16, directionAngle - Math.PI / 8, Math.PI / 4, 0, thetaLength * 1.1);
-    directionGeo.needsUpdate = true;
-    const directionMat = new THREE.MeshBasicMaterial({
-        color: directionColors[cap.direction],
+    // --- Shape-specific logic ---
+    if (cap.shape === 'sphere-cap') {
+        const capRadius = 100; // Visual radius of the cap sphere
+        // To make it sit on the surface, we place its CENTER at a height equal to its radius.
+        const positionVector = latLonToVector3(cap.lat, cap.lon, scaledHeight + capRadius);
+        const normalVector = positionVector.clone().normalize();
+        const quaternion = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), normalVector);
+
+        capGroup.position.copy(positionVector);
+        capGroup.quaternion.copy(quaternion);
+
+        const thetaLength = cap.size * sizeScalers[cap.sizeScaler] * Math.PI / 180;
+        const capGeo = new THREE.SphereGeometry(capRadius, 32, 16, 0, Math.PI * 2, 0, thetaLength);
+        const capMeshMain = new THREE.Mesh(capGeo, capMat);
+        // The geometry is centered in the group, which is already lifted by capRadius, so its bottom sits on the surface.
+        capGroup.add(capMeshMain);
+
+        // Add back the direction indicator
+        const directionAngle = directions.indexOf(cap.direction) * (Math.PI / 4);
+        const directionGeo = new THREE.SphereGeometry(capRadius, 32, 16, directionAngle - Math.PI / 8, Math.PI / 4, 0, thetaLength * 1.1);
+        const directionMat = new THREE.MeshBasicMaterial({
+            color: directionColors[cap.direction], transparent: true, opacity: 0.5, side: THREE.DoubleSide
+        });
+        const directionMesh = new THREE.Mesh(directionGeo, directionMat);
+        capGroup.add(directionMesh);
+
+    } else if (cap.shape === 'cylinder') {
+        const capHeight = 250;
+        const capRadius = 40;
+        const positionVector = latLonToVector3(cap.lat, cap.lon, scaledHeight);
+        const normalVector = positionVector.clone().normalize();
+        const quaternion = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), normalVector);
+
+        capGroup.position.copy(positionVector);
+        capGroup.quaternion.copy(quaternion);
+
+        const capGeo = new THREE.CylinderGeometry(capRadius, capRadius, capHeight, 32);
+        const capMeshMain = new THREE.Mesh(capGeo, capMat);
+        // Move the cylinder up by half its height so its base sits on the group's origin (the surface).
+        capMeshMain.position.y = capHeight / 2;
+        capGroup.add(capMeshMain);
+    }
+
+    console.log(`Cap ${index + 1} (${cap.shape}) created at lat: ${cap.lat}, lon: ${cap.lon}`);
+}
+
+
+function createCap(cap, index) {
+    if (cap.mesh) earthGroup.remove(cap.mesh);
+
+    const scaledHeight = cap.h * xyScalers[cap.hScaler];
+
+    // Create the main group that will be positioned and oriented
+    const capGroup = new THREE.Group();
+    capGroup.userData.originalPosition = { lat: cap.lat, lon: cap.lon, h: cap.h };
+    cap.mesh = capGroup;
+    earthGroup.add(capGroup);
+
+    const capMat = new THREE.MeshBasicMaterial({
+        color: capColors[index % capColors.length],
         transparent: true,
-        opacity: 0.5,
+        opacity: 0.9,
         side: THREE.DoubleSide
     });
-    directionMat.needsUpdate = true;
-    const directionMesh = new THREE.Mesh(directionGeo, directionMat);
 
-    capMesh.add(capMeshMain);
-    capMesh.add(directionMesh);
-    capMesh.quaternion.copy(quaternion);
+    // --- Shape-specific logic ---
+    if (cap.shape === 'sphere-cap') {
+        const capRadius = 100; // Visual radius of the cap sphere
+        // To make it sit on the surface, we place its CENTER at a height equal to its radius.
+        const positionVector = latLonToVector3(cap.lat, cap.lon, scaledHeight + capRadius);
+        const normalVector = positionVector.clone().normalize();
+        const quaternion = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), normalVector);
 
-    capMesh.userData.size = cap.size * sizeScalers[cap.sizeScaler];
-    capMesh.userData.originalPosition = { lat: cap.lat, lon: cap.lon, h: cap.h };
-    cap.mesh = capMesh;
-    earthGroup.add(capMesh);
+        capGroup.position.copy(positionVector);
+        capGroup.quaternion.copy(quaternion);
 
-    console.log(`Cap ${index + 1} created at lat: ${cap.lat}, lon: ${cap.lon}, height: ${scaledHeight}, color: ${capColors[index % capColors.length].toString(16)}`);
+        const thetaLength = cap.size * sizeScalers[cap.sizeScaler] * Math.PI / 180;
+        const capGeo = new THREE.SphereGeometry(capRadius, 32, 16, 0, Math.PI * 2, 0, thetaLength);
+        const capMeshMain = new THREE.Mesh(capGeo, capMat);
+        // The geometry is centered in the group, which is already lifted by capRadius, so its bottom sits on the surface.
+        capGroup.add(capMeshMain);
+
+        // Add back the direction indicator
+        const directionAngle = directions.indexOf(cap.direction) * (Math.PI / 4);
+        const directionGeo = new THREE.SphereGeometry(capRadius, 32, 16, directionAngle - Math.PI / 8, Math.PI / 4, 0, thetaLength * 1.1);
+        const directionMat = new THREE.MeshBasicMaterial({
+            color: directionColors[cap.direction], transparent: true, opacity: 0.5, side: THREE.DoubleSide
+        });
+        const directionMesh = new THREE.Mesh(directionGeo, directionMat);
+        capGroup.add(directionMesh);
+
+    } else if (cap.shape === 'cylinder') {
+        const capHeight = 250;
+        const capRadius = 40;
+        const positionVector = latLonToVector3(cap.lat, cap.lon, scaledHeight);
+        const normalVector = positionVector.clone().normalize();
+        const quaternion = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), normalVector);
+
+        capGroup.position.copy(positionVector);
+        capGroup.quaternion.copy(quaternion);
+
+        const capGeo = new THREE.CylinderGeometry(capRadius, capRadius, capHeight, 32);
+        const capMeshMain = new THREE.Mesh(capGeo, capMat);
+        // Move the cylinder up by half its height so its base sits on the group's origin (the surface).
+        capMeshMain.position.y = capHeight / 2;
+        capGroup.add(capMeshMain);
+    }
+
+    console.log(`Cap ${index + 1} (${cap.shape}) created at lat: ${cap.lat}, lon: ${cap.lon}`);
 }
 
 function updateCap(cap, index) {
@@ -272,6 +393,114 @@ function updateAndFocus(cap, index, forceFocus = false) {
     if (forceFocus || Math.abs(cap.lat - oldLat) > 0.1 || Math.abs(cap.lon - oldLon) > 0.1) {
         focusCameraOnCap(cap);
     }
+}
+
+function updateCapSelectDropdown() {
+    const selectCapDropdown = document.getElementById('select-cap');
+    selectCapDropdown.innerHTML = '';
+    caps.forEach((_, index) => {
+        const option = new Option(`Cap ${index + 1}`, index);
+        selectCapDropdown.add(option);
+    });
+    selectCapDropdown.value = settings.selectedCapIndex;
+}
+
+function updateFocalAnchorDropdown() {
+    const focalAnchorSelect = document.getElementById('focal-anchor');
+    focalAnchorSelect.innerHTML = '';
+    const staticOptions = [
+        { value: "earth-core", label: "Earth Core" },
+        { value: "north-pole", label: "North Pole" },
+        { value: "south-pole", label: "South Pole" },
+        { value: "binary-center", label: "Binary Center" }
+    ];
+    staticOptions.forEach(opt => {
+        const option = new Option(opt.label, opt.value);
+        focalAnchorSelect.add(option);
+    });
+    caps.forEach((_, index) => {
+        const option = new Option(`Cap ${index + 1}`, `cap-${index}`);
+        focalAnchorSelect.add(option);
+    });
+    focalAnchorSelect.value = settings.focalAnchor;
+}
+
+function renderHtmlCapsUI() {
+    const capsContainer = document.getElementById('caps-container');
+    const capTemplate = document.getElementById('cap-template');
+    capsContainer.innerHTML = '';
+    caps.forEach((cap, index) => {
+        const capUi = capTemplate.content.cloneNode(true).firstElementChild;
+        capUi.querySelector('.cap-title').textContent = `Cap ${index + 1}`;
+        capUi.dataset.index = index;
+
+        const controlsMap = [
+            { prop: 'lat', type: 'range', min: -90, max: 90, step: 0.1 },
+            { prop: 'lon', type: 'range', min: -180, max: 180, step: 0.1 },
+            { prop: 'h', type: 'range', min: 0, max: 100, step: 1 },
+            { prop: 'size', type: 'range', min: 0.1, max: 5, step: 0.1 },
+            { prop: 'xScaler', type: 'select', options: xyScalerLabels },
+            { prop: 'yScaler', type: 'select', options: xyScalerLabels },
+            { prop: 'hScaler', type: 'select', options: xyScalerLabels },
+            { prop: 'sizeScaler', type: 'select', options: sizeScalerLabels },
+            { prop: 'direction', type: 'select', options: directions },
+            { prop: 'shape', type: 'select', options: { 'Sphere Cap': 'sphere-cap', 'Cylinder': 'cylinder' } },
+        ];
+
+        controlsMap.forEach(({prop, type, min, max, step, options}) => {
+            const el = capUi.querySelector(`[data-property="${prop}"]`);
+            if (!el) {
+                console.error(`Element for property ${prop} not found in cap UI`);
+                return;
+            }
+            if (type === 'range') {
+                el.min = min;
+                el.max = max;
+                el.step = step;
+                el.value = Math.max(min, Math.min(max, cap[prop]));
+                const valueDisplay = el.previousElementSibling?.querySelector('.value-display');
+                if (valueDisplay) valueDisplay.textContent = el.value;
+                el.addEventListener('input', (e) => {
+                    cap[prop] = parseFloat(e.target.value);
+                    if (valueDisplay) valueDisplay.textContent = e.target.value;
+                    updateAndFocus(cap, index);
+                });
+            } else if (type === 'select') {
+                const source = Array.isArray(options) ? options : Object.keys(options);
+                source.forEach(key => {
+                    const value = Array.isArray(options) ? key : options[key];
+                    const option = new Option(key, value);
+                    el.add(option);
+                });
+                el.value = cap[prop];
+                el.addEventListener('change', (e) => {
+                    cap[prop] = Array.isArray(options) ? e.target.value : parseInt(e.target.value);
+                    updateAndFocus(cap, index);
+                });
+            }
+        });
+
+        capUi.querySelector('.remove-cap-btn').addEventListener('click', () => {
+            if (cap.mesh) earthGroup.remove(cap.mesh);
+            caps.splice(index, 1);
+            if (settings.selectedCapIndex >= caps.length) {
+                settings.selectedCapIndex = Math.max(0, caps.length - 1);
+                capIndexController.setValue(settings.selectedCapIndex);
+            }
+            capIndexController.max(Math.max(0, caps.length - 1));
+            renderHtmlCapsUI();
+            updateFocalAnchorDropdown();
+            if (caps.length > 0 && caps[settings.selectedCapIndex]) {
+                lerpCamera(`cap-${settings.selectedCapIndex}`);
+            } else {
+                lerpCamera("earth-core");
+            }
+        });
+
+        capsContainer.appendChild(capUi);
+    });
+    updateCapSelectDropdown();
+    updateFocalAnchorDropdown();
 }
 
 function onMouseClick(event) {
@@ -299,6 +528,7 @@ function onMouseClick(event) {
 document.addEventListener('click', onMouseClick);
 
 // UI elements
+let capIndexController; // Declare globally for access
 try {
     const datGuiContainer = document.getElementById('dat-gui-container');
     const htmlControlsContainer = document.getElementById('html-controls');
@@ -321,7 +551,7 @@ try {
     gui.add(settings, "resetCamera").name("Reset Camera");
     gui.add(settings, "pickCap").name("Pick Cap Location").onChange(v => settings.pickCap = v);
     gui.add(settings, "useOrthographic").name("Use Orthographic Camera").onChange(v => settings.toggleCamera());
-    const capIndexController = gui.add(settings, "selectedCapIndex", 0, Math.max(0, caps.length - 1)).name("Select Cap").step(1)
+    capIndexController = gui.add(settings, "selectedCapIndex", 0, Math.max(0, caps.length - 1)).name("Select Cap").step(1)
         .onChange(v => {
             settings.selectedCapIndex = Math.floor(v);
             if (caps[settings.selectedCapIndex]) lerpCamera(`cap-${settings.selectedCapIndex}`);
@@ -380,130 +610,6 @@ try {
         }
     });
 
-    function updateCapSelectDropdown() {
-        selectCapDropdown.innerHTML = '';
-        caps.forEach((_, index) => {
-            const option = new Option(`Cap ${index + 1}`, index);
-            selectCapDropdown.add(option);
-        });
-        selectCapDropdown.value = settings.selectedCapIndex;
-    }
-
-    function updateFocalAnchorDropdown() {
-        focalAnchorSelect.innerHTML = '';
-        const staticOptions = [
-            { value: "earth-core", label: "Earth Core" },
-            { value: "north-pole", label: "North Pole" },
-            { value: "south-pole", label: "South Pole" },
-            { value: "binary-center", label: "Binary Center" }
-        ];
-        staticOptions.forEach(opt => {
-            const option = new Option(opt.label, opt.value);
-            focalAnchorSelect.add(option);
-        });
-        caps.forEach((_, index) => {
-            const option = new Option(`Cap ${index + 1}`, `cap-${index}`);
-            focalAnchorSelect.add(option);
-        });
-        focalAnchorSelect.value = settings.focalAnchor;
-    }
-
-    document.getElementById('add-cap-btn').addEventListener('click', () => {
-        const existingCaps = caps.filter(cap => Math.abs(cap.lat - cityCoords.houston.lat) < 0.01 && Math.abs(cap.lon - cityCoords.houston.lon) < 0.01);
-        const maxHeight = existingCaps.length > 0 ? Math.max(...existingCaps.map(cap => cap.h * xyScalers[cap.hScaler])) : 0;
-        caps.push({
-            lat: cityCoords.houston.lat, lon: cityCoords.houston.lon, h: 0, size: 0.1, direction: "N",
-            xScaler: 4, yScaler: 4, hScaler: 4, sizeScaler: 2, mesh: null
-        });
-        settings.selectedCapIndex = caps.length - 1;
-        capIndexController.setValue(settings.selectedCapIndex);
-        capIndexController.max(caps.length - 1);
-        renderHtmlCapsUI();
-        updateAndFocus(caps[caps.length - 1], caps.length - 1, true);
-        updateFocalAnchorDropdown();
-    });
-
-    function renderHtmlCapsUI() {
-        capsContainer.innerHTML = '';
-        caps.forEach((cap, index) => {
-            const capUi = capTemplate.content.cloneNode(true).firstElementChild;
-            capUi.querySelector('.cap-title').textContent = `Cap ${index + 1}`;
-            capUi.dataset.index = index;
-
-            const controlsMap = [
-                { prop: 'lat', type: 'range', min: -90, max: 90, step: 0.1 },
-                { prop: 'lon', type: 'range', min: -180, max: 180, step: 0.1 },
-                { prop: 'h', type: 'range', min: 0, max: 100, step: 1 },
-                { prop: 'size', type: 'range', min: 0.1, max: 5, step: 0.1 },
-                { prop: 'xScaler', type: 'select', options: xyScalerLabels },
-                { prop: 'yScaler', type: 'select', options: xyScalerLabels },
-                { prop: 'hScaler', type: 'select', options: xyScalerLabels },
-                { prop: 'sizeScaler', type: 'select', options: sizeScalerLabels },
-                { prop: 'direction', type: 'select', options: directions },
-            ];
-
-            controlsMap.forEach(({prop, type, min, max, step, options}) => {
-                const el = capUi.querySelector(`[data-property="${prop}"]`);
-                if (!el) {
-                    console.error(`Element for property ${prop} not found in cap UI`);
-                    return;
-                }
-                if (type === 'range') {
-                    el.min = min;
-                    el.max = max;
-                    el.step = step;
-                    el.value = Math.max(min, Math.min(max, cap[prop]));
-                    const valueDisplay = el.previousElementSibling?.querySelector('.value-display');
-                    if (valueDisplay) valueDisplay.textContent = el.value;
-                    el.addEventListener('input', (e) => {
-                        cap[prop] = parseFloat(e.target.value);
-                        if (valueDisplay) valueDisplay.textContent = e.target.value;
-                        updateAndFocus(cap, index);
-                    });
-                } else if (type === 'select') {
-                    const source = Array.isArray(options) ? options : Object.keys(options);
-                    source.forEach(key => {
-                        const value = Array.isArray(options) ? key : options[key];
-                        const option = new Option(key, value);
-                        el.add(option);
-                    });
-                    el.value = cap[prop];
-                    el.addEventListener('change', (e) => {
-                        cap[prop] = Array.isArray(options) ? e.target.value : parseInt(e.target.value);
-                        updateAndFocus(cap, index);
-                    });
-                }
-            });
-
-            capUi.querySelector('.remove-cap-btn').addEventListener('click', () => {
-                if (cap.mesh) earthGroup.remove(cap.mesh);
-                caps.splice(index, 1);
-                if (settings.selectedCapIndex >= caps.length) {
-                    settings.selectedCapIndex = Math.max(0, caps.length - 1);
-                    capIndexController.setValue(settings.selectedCapIndex);
-                }
-                capIndexController.max(Math.max(0, caps.length - 1));
-                renderHtmlCapsUI();
-                updateFocalAnchorDropdown();
-                if (caps.length > 0 && caps[settings.selectedCapIndex]) {
-                    lerpCamera(`cap-${settings.selectedCapIndex}`);
-                } else {
-                    lerpCamera("earth-core");
-                }
-            });
-
-            capsContainer.appendChild(capUi);
-        });
-        updateCapSelectDropdown();
-        updateFocalAnchorDropdown();
-    }
-
-    function toggleControlPanel() {
-        datGuiContainer.classList.toggle('hidden');
-        htmlControlsContainer.classList.toggle('hidden');
-    }
-    toggleToDatGuiBtn.addEventListener('click', toggleControlPanel);
-
     // Initialize UI
     scene.background = null;
     resetCameraToDefault();
@@ -514,6 +620,14 @@ try {
     console.error('Error initializing UI:', e);
 }
 
+function toggleControlPanel() {
+    const datGuiContainer = document.getElementById('dat-gui-container');
+    const htmlControlsContainer = document.getElementById('html-controls');
+    datGuiContainer.classList.toggle('hidden');
+    htmlControlsContainer.classList.toggle('hidden');
+}
+document.getElementById('toggle-to-dat-gui').addEventListener('click', toggleControlPanel);
+
 // Animation loop
 function animate() {
     requestAnimationFrame(animate);
@@ -522,13 +636,17 @@ function animate() {
 
     if (settings.rotateSphere) {
         const rotationQuaternion = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), elapsedTime * 0.25);
-        earthGroup.quaternion.copy(rotationQuaternion); // Rotate entire earthGroup
+        earthGroup.quaternion.copy(rotationQuaternion);
         cloudMesh.quaternion.copy(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), elapsedTime * 0.28));
         moonMesh.position.set(moonDistance * Math.cos(elapsedTime * 0.1), 0, moonDistance * Math.sin(elapsedTime * 0.1));
+        moonDebugMesh.position.copy(moonMesh.position);
+        // Log moon's screen position
+        const moonScreenPos = moonMesh.position.clone().project(camera);
+        console.log(`Moon screen position: x=${moonScreenPos.x.toFixed(2)}, y=${moonScreenPos.y.toFixed(2)}, z=${moonScreenPos.z.toFixed(2)}`);
     }
 
     if (cameraLerp.active) {
-        cameraLerp.progress += 16 / cameraLerp.duration; // 16ms per frame (60fps)
+        cameraLerp.progress += 16 / cameraLerp.duration;
         if (cameraLerp.progress >= 1) {
             cameraLerp.progress = 1;
             cameraLerp.active = false;
