@@ -3,9 +3,10 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GUI } from 'dat.gui';
 
 const sphereRadius = 6371; // Earth's radius in km
-let scene, camera, renderer, controls, earthMesh, cloudMesh, raycaster, mouse, cameraHelper;
+const moonDistance = 384400; // Moon's average distance in km
+let scene, camera, renderer, controls, earthMesh, cloudMesh, moonMesh, raycaster, mouse, cameraHelper;
 scene = new THREE.Scene();
-camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 200000);
+camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 500000);
 renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
@@ -20,7 +21,7 @@ scene.add(cameraHelper);
 const textureLoader = new THREE.TextureLoader();
 
 // Starfield
-const starGeometry = new THREE.SphereGeometry(150000, 64, 64);
+const starGeometry = new THREE.SphereGeometry(400000, 64, 64);
 const starMaterial = new THREE.MeshBasicMaterial({ map: textureLoader.load('texture/galaxy.png'), side: THREE.BackSide });
 const starMesh = new THREE.Mesh(starGeometry, starMaterial);
 scene.add(starMesh);
@@ -37,6 +38,18 @@ const cloudGeometry = new THREE.SphereGeometry(sphereRadius + 15, 64, 64);
 const cloudMaterial = new THREE.MeshPhongMaterial({ map: textureLoader.load('texture/earthCloud.png'), transparent: true, opacity: 0.8 });
 cloudMesh = new THREE.Mesh(cloudGeometry, cloudMaterial);
 earthGroup.add(cloudMesh);
+
+// Moon mesh
+const moonGeometry = new THREE.SphereGeometry(1737.4, 32, 32); // Moon's radius in km
+const moonMaterial = new THREE.MeshPhongMaterial({
+    color: 0xaaaaaa,
+    emissive: 0x222222,
+    emissiveIntensity: 0.2,
+    shininess: 10
+});
+moonMesh = new THREE.Mesh(moonGeometry, moonMaterial);
+moonMesh.position.set(moonDistance, 0, 0); // Simplified position in orbital plane
+scene.add(moonMesh);
 
 // Lighting
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
@@ -60,27 +73,38 @@ controls.target.set(0, 0, 0);
 const settings = {
     backgroundColor: "#000000",
     rotateSphere: true,
-    preserveTarget: false,
+    focalAnchor: "earth-core",
     pickCap: false,
     selectedCapIndex: 0,
     useOrthographic: false,
-    resetCamera: () => { resetCameraToDefault(); },
+    resetCamera: () => { lerpCamera("earth-core"); },
     toggleUI: () => toggleControlPanel(),
     toggleCamera: () => { settings.useOrthographic = !settings.useOrthographic; updateCamera(); }
+};
+
+// Camera lerp state
+let cameraLerp = {
+    active: false,
+    startPosition: new THREE.Vector3(),
+    targetPosition: new THREE.Vector3(),
+    startTarget: new THREE.Vector3(),
+    targetTarget: new THREE.Vector3(),
+    progress: 0,
+    duration: 1000 // ms
 };
 
 function updateCamera() {
     scene.remove(cameraHelper);
     if (settings.useOrthographic) {
-        camera = new THREE.OrthographicCamera(window.innerWidth / -2, window.innerWidth / 2, window.innerHeight / 2, window.innerHeight / -2, 0.1, 200000);
+        camera = new THREE.OrthographicCamera(window.innerWidth / -2, window.innerWidth / 2, window.innerHeight / 2, window.innerHeight / -2, 0.1, 500000);
     } else {
-        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 200000);
+        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 500000);
     }
     camera.position.set(0, 0, sphereRadius * 3);
     controls.object = camera;
     cameraHelper = new THREE.CameraHelper(camera);
     scene.add(cameraHelper);
-    resetCameraToDefault();
+    lerpCamera(settings.focalAnchor);
 }
 
 function latLonToVector3(lat, lon, height = 0) {
@@ -100,12 +124,18 @@ function vector3ToLatLon(vector) {
     return { lat, lon };
 }
 
-// Initial cap at Houston, Texas
-const houstonCoords = { lat: 29.76, lon: -95.36 };
-let caps = [{
-    lat: houstonCoords.lat, lon: houstonCoords.lon, h: 0, size: 0.1, direction: "N",
-    xScaler: 4, yScaler: 4, hScaler: 4, sizeScaler: 2, mesh: null,
-}];
+// City coordinates
+const cityCoords = {
+    "houston": { lat: 29.76, lon: -95.36 },
+    "new-york": { lat: 40.71, lon: -74.01 },
+    "london": { lat: 51.51, lon: -0.13 }
+};
+
+// Initial caps
+let caps = [
+    { lat: cityCoords.houston.lat, lon: cityCoords.houston.lon, h: 0, size: 0.1, direction: "N", xScaler: 4, yScaler: 4, hScaler: 4, sizeScaler: 2, mesh: null },
+    { lat: cityCoords["new-york"].lat, lon: cityCoords["new-york"].lon, h: 0, size: 0.1, direction: "N", xScaler: 4, yScaler: 4, hScaler: 4, sizeScaler: 2, mesh: null }
+];
 
 // Color cycle for caps
 const capColors = [
@@ -114,7 +144,7 @@ const capColors = [
     0x0000ff, // Blue
     0xffff00, // Yellow
     0xff00ff, // Magenta
-    0x00ffff, // Cyan
+    0x00ffff // Cyan
 ];
 
 const xyScalers = [0.1, 0.3, 0.5, 0.7, 1];
@@ -128,27 +158,63 @@ const xyScalerLabels = { "0.1x": 0, "0.3x": 1, "0.5x": 2, "0.7x": 3, "1x": 4 };
 const sizeScalerLabels = { "Tiny": 0, "Small": 1, "Medium": 2, "Large": 3, "Huge": 4 };
 
 function resetCameraToDefault() {
-    camera.position.set(0, 0, sphereRadius * 3);
-    controls.target.set(0, 0, 0);
-    controls.update();
+    lerpCamera("earth-core");
+}
+
+function lerpCamera(anchor) {
+    cameraLerp.active = true;
+    cameraLerp.progress = 0;
+    cameraLerp.startPosition.copy(camera.position);
+    cameraLerp.startTarget.copy(controls.target);
+
+    switch (anchor) {
+        case "earth-core":
+            cameraLerp.targetPosition.set(0, 0, sphereRadius * 3);
+            cameraLerp.targetTarget.set(0, 0, 0);
+            break;
+        case "north-pole":
+            cameraLerp.targetPosition.set(0, sphereRadius * 3, 0);
+            cameraLerp.targetTarget.set(0, sphereRadius, 0);
+            break;
+        case "south-pole":
+            cameraLerp.targetPosition.set(0, -sphereRadius * 3, 0);
+            cameraLerp.targetTarget.set(0, -sphereRadius, 0);
+            break;
+        case "binary-center":
+            cameraLerp.targetPosition.set(moonDistance / 2, 0, sphereRadius * 3);
+            cameraLerp.targetTarget.set(moonDistance / 2, 0, 0);
+            break;
+        default: // Cap index
+            const capIndex = parseInt(anchor.split('-')[1]);
+            if (caps[capIndex] && caps[capIndex].mesh) {
+                const capPosition = new THREE.Vector3();
+                caps[capIndex].mesh.getWorldPosition(capPosition);
+                cameraLerp.targetPosition.copy(capPosition.clone().normalize().multiplyScalar(sphereRadius * 2));
+                cameraLerp.targetTarget.copy(capPosition);
+            } else {
+                cameraLerp.targetPosition.set(0, 0, sphereRadius * 3);
+                cameraLerp.targetTarget.set(0, 0, 0);
+            }
+    }
 }
 
 function focusCameraOnCap(cap) {
     if (!cap.mesh) return;
     const capPosition = new THREE.Vector3();
     cap.mesh.getWorldPosition(capPosition);
-    const camDistance = sphereRadius * 2;
-    const cameraPosition = capPosition.clone().normalize().multiplyScalar(sphereRadius + camDistance);
-    camera.position.copy(cameraPosition);
-    if (!settings.preserveTarget) controls.target.copy(capPosition);
-    controls.update();
+    cameraLerp.targetPosition.copy(capPosition.clone().normalize().multiplyScalar(sphereRadius * 2));
+    cameraLerp.targetTarget.copy(capPosition);
+    cameraLerp.active = true;
+    cameraLerp.progress = 0;
+    cameraLerp.startPosition.copy(camera.position);
+    cameraLerp.startTarget.copy(controls.target);
 }
 
 function createCap(cap, index) {
     if (cap.mesh) earthGroup.remove(cap.mesh);
 
     const scaledHeight = cap.h * xyScalers[cap.hScaler];
-    const positionVector = latLonToVector3(cap.lat, cap.lon, scaledHeight); // Removed xyScalers from lat/lon
+    const positionVector = latLonToVector3(cap.lat, cap.lon, scaledHeight);
     const upVector = new THREE.Vector3(0, 1, 0);
     const normalVector = positionVector.clone().normalize();
     const quaternion = new THREE.Quaternion().setFromUnitVectors(upVector, normalVector);
@@ -156,22 +222,23 @@ function createCap(cap, index) {
     const capMesh = new THREE.Group();
     capMesh.position.copy(positionVector);
 
-    // Spherical cap with same curvature as Earth
-    const capRadius = sphereRadius + scaledHeight;
+    // Spherical cap with Earth's curvature
     const thetaLength = cap.size * sizeScalers[cap.sizeScaler] * Math.PI / 180;
-    const capGeo = new THREE.SphereGeometry(capRadius, 32, 16, 0, Math.PI * 2, 0, thetaLength);
+    const capGeo = new THREE.SphereGeometry(sphereRadius, 32, 16, 0, Math.PI * 2, 0, thetaLength);
+    capGeo.needsUpdate = true;
     const capMat = new THREE.MeshBasicMaterial({
         color: capColors[index % capColors.length],
         transparent: true,
         opacity: 0.9,
         side: THREE.DoubleSide
     });
-    capMat.needsUpdate = true; // Force material update
+    capMat.needsUpdate = true;
     const capMeshMain = new THREE.Mesh(capGeo, capMat);
 
     // Directional indicator
     const directionAngle = directions.indexOf(cap.direction) * (Math.PI / 4);
-    const directionGeo = new THREE.SphereGeometry(capRadius, 32, 16, directionAngle - Math.PI / 8, Math.PI / 4, 0, thetaLength * 1.1);
+    const directionGeo = new THREE.SphereGeometry(sphereRadius, 32, 16, directionAngle - Math.PI / 8, Math.PI / 4, 0, thetaLength * 1.1);
+    directionGeo.needsUpdate = true;
     const directionMat = new THREE.MeshBasicMaterial({
         color: directionColors[cap.direction],
         transparent: true,
@@ -190,7 +257,7 @@ function createCap(cap, index) {
     cap.mesh = capMesh;
     earthGroup.add(capMesh);
 
-    console.log(`Cap ${index + 1} created with color: ${capColors[index % capColors.length].toString(16)}`);
+    console.log(`Cap ${index + 1} created at lat: ${cap.lat}, lon: ${cap.lon}, color: ${capColors[index % capColors.length].toString(16)}`);
 }
 
 function updateCap(cap, index) {
@@ -237,6 +304,8 @@ try {
     const toggleToDatGuiBtn = document.getElementById('toggle-to-dat-gui');
     const capsContainer = document.getElementById('caps-container');
     const capTemplate = document.getElementById('cap-template');
+    const focalAnchorSelect = document.getElementById('focal-anchor');
+    const cityKeySelect = document.getElementById('city-key');
 
     if (!GUI) {
         console.error('dat.gui failed to load. Please check the CDN or import map.');
@@ -248,14 +317,13 @@ try {
     datGuiContainer.classList.add('controls');
     gui.addColor(settings, "backgroundColor").onChange(v => scene.background = new THREE.Color(v));
     gui.add(settings, "rotateSphere").name("Rotate Earth").onChange(v => settings.rotateSphere = v);
-    gui.add(settings, "preserveTarget").onChange(v => settings.preserveTarget = v);
     gui.add(settings, "resetCamera").name("Reset Camera");
     gui.add(settings, "pickCap").name("Pick Cap Location").onChange(v => settings.pickCap = v);
     gui.add(settings, "useOrthographic").name("Use Orthographic Camera").onChange(v => settings.toggleCamera());
     const capIndexController = gui.add(settings, "selectedCapIndex", 0, Math.max(0, caps.length - 1)).name("Select Cap").step(1)
         .onChange(v => {
             settings.selectedCapIndex = Math.floor(v);
-            if (caps[settings.selectedCapIndex]) focusCameraOnCap(caps[settings.selectedCapIndex]);
+            if (caps[settings.selectedCapIndex]) lerpCamera(`cap-${settings.selectedCapIndex}`);
         });
     gui.add(settings, 'toggleUI').name('Switch to HTML UI');
 
@@ -265,9 +333,13 @@ try {
     });
     document.getElementById('rotate-sphere').addEventListener('change', (e) => settings.rotateSphere = e.target.checked);
     document.getElementById('rotate-sphere').checked = settings.rotateSphere;
-    document.getElementById('preserve-target').addEventListener('change', (e) => settings.preserveTarget = e.target.checked);
     document.getElementById('reset-camera-btn').addEventListener('click', () => {
-        resetCameraToDefault();
+        lerpCamera("earth-core");
+    });
+
+    focalAnchorSelect.addEventListener('change', (e) => {
+        settings.focalAnchor = e.target.value;
+        lerpCamera(settings.focalAnchor);
     });
 
     const pickCapContainer = document.createElement('div');
@@ -290,7 +362,21 @@ try {
     selectCapDropdown.addEventListener('change', (e) => {
         settings.selectedCapIndex = parseInt(e.target.value);
         capIndexController.setValue(settings.selectedCapIndex);
-        if (caps[settings.selectedCapIndex]) focusCameraOnCap(caps[settings.selectedCapIndex]);
+        if (caps[settings.selectedCapIndex]) lerpCamera(`cap-${settings.selectedCapIndex}`);
+    });
+
+    cityKeySelect.addEventListener('change', (e) => {
+        if (e.target.value !== "none") {
+            const coords = cityCoords[e.target.value];
+            const selectedCap = caps[settings.selectedCapIndex];
+            if (selectedCap) {
+                selectedCap.lat = coords.lat;
+                selectedCap.lon = coords.lon;
+                selectedCap.h = 0;
+                updateAndFocus(selectedCap, settings.selectedCapIndex, true);
+                renderHtmlCapsUI();
+            }
+        }
     });
 
     function updateCapSelectDropdown() {
@@ -302,19 +388,38 @@ try {
         selectCapDropdown.value = settings.selectedCapIndex;
     }
 
+    function updateFocalAnchorDropdown() {
+        focalAnchorSelect.innerHTML = '';
+        const staticOptions = [
+            { value: "earth-core", label: "Earth Core" },
+            { value: "north-pole", label: "North Pole" },
+            { value: "south-pole", label: "South Pole" },
+            { value: "binary-center", label: "Binary Center" }
+        ];
+        staticOptions.forEach(opt => {
+            const option = new Option(opt.label, opt.value);
+            focalAnchorSelect.add(option);
+        });
+        caps.forEach((_, index) => {
+            const option = new Option(`Cap ${index + 1}`, `cap-${index}`);
+            focalAnchorSelect.add(option);
+        });
+        focalAnchorSelect.value = settings.focalAnchor;
+    }
+
     document.getElementById('add-cap-btn').addEventListener('click', () => {
-        const existingCaps = caps.filter(cap => Math.abs(cap.lat - houstonCoords.lat) < 0.01 && Math.abs(cap.lon - houstonCoords.lon) < 0.01);
+        const existingCaps = caps.filter(cap => Math.abs(cap.lat - cityCoords.houston.lat) < 0.01 && Math.abs(cap.lon - cityCoords.houston.lon) < 0.01);
         const maxHeight = existingCaps.length > 0 ? Math.max(...existingCaps.map(cap => cap.h * xyScalers[cap.hScaler])) : 0;
-        const newHeight = maxHeight + 10;
         caps.push({
-            lat: houstonCoords.lat, lon: houstonCoords.lon, h: newHeight, size: 0.1, direction: "N",
-            xScaler: 4, yScaler: 4, hScaler: 4, sizeScaler: 2, mesh: null,
+            lat: cityCoords.houston.lat, lon: cityCoords.houston.lon, h: 0, size: 0.1, direction: "N",
+            xScaler: 4, yScaler: 4, hScaler: 4, sizeScaler: 2, mesh: null
         });
         settings.selectedCapIndex = caps.length - 1;
         capIndexController.setValue(settings.selectedCapIndex);
         capIndexController.max(caps.length - 1);
         renderHtmlCapsUI();
         updateAndFocus(caps[caps.length - 1], caps.length - 1, true);
+        updateFocalAnchorDropdown();
     });
 
     function renderHtmlCapsUI() {
@@ -378,16 +483,18 @@ try {
                 }
                 capIndexController.max(Math.max(0, caps.length - 1));
                 renderHtmlCapsUI();
+                updateFocalAnchorDropdown();
                 if (caps.length > 0 && caps[settings.selectedCapIndex]) {
-                    focusCameraOnCap(caps[settings.selectedCapIndex]);
+                    lerpCamera(`cap-${settings.selectedCapIndex}`);
                 } else {
-                    resetCameraToDefault();
+                    lerpCamera("earth-core");
                 }
             });
 
             capsContainer.appendChild(capUi);
         });
         updateCapSelectDropdown();
+        updateFocalAnchorDropdown();
     }
 
     function toggleControlPanel() {
@@ -401,7 +508,7 @@ try {
     resetCameraToDefault();
     renderHtmlCapsUI();
     caps.forEach((cap, index) => updateCap(cap, index));
-    focusCameraOnCap(caps[0]);
+    lerpCamera(`cap-0`);
 } catch (e) {
     console.error('Error initializing UI:', e);
 }
@@ -426,6 +533,18 @@ function animate() {
                 cap.mesh.quaternion.copy(quaternion);
             }
         });
+        moonMesh.position.set(moonDistance * Math.cos(elapsedTime * 0.1), 0, moonDistance * Math.sin(elapsedTime * 0.1));
+    }
+
+    if (cameraLerp.active) {
+        cameraLerp.progress += 16 / cameraLerp.duration; // 16ms per frame (60fps)
+        if (cameraLerp.progress >= 1) {
+            cameraLerp.progress = 1;
+            cameraLerp.active = false;
+        }
+        camera.position.lerpVectors(cameraLerp.startPosition, cameraLerp.targetPosition, cameraLerp.progress);
+        controls.target.lerpVectors(cameraLerp.startTarget, cameraLerp.targetTarget, cameraLerp.progress);
+        controls.update();
     }
 
     controls.update();

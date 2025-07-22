@@ -34,8 +34,13 @@
                 <input type="checkbox" id="rotate-sphere" checked>
             </div>
             <div class="control-row">
-                <label>Preserve Anchor</label>
-                <input type="checkbox" id="preserve-target">
+                <label>Focal Anchor</label>
+                <select id="focal-anchor">
+                    <option value="earth-core">Earth Core</option>
+                    <option value="north-pole">North Pole</option>
+                    <option value="south-pole">South Pole</option>
+                    <option value="binary-center">Binary Center</option>
+                </select>
             </div>
             <div class="control-row">
                 <button id="reset-camera-btn" class="full-width">Reset Camera</button>
@@ -45,6 +50,15 @@
             <legend>Caps</legend>
             <div class="control-row">
                 <button id="add-cap-btn" class="full-width">Add New Cap</button>
+            </div>
+            <div class="control-row">
+                <label>City Key</label>
+                <select id="city-key">
+                    <option value="none">Select City</option>
+                    <option value="houston">Houston, TX</option>
+                    <option value="new-york">New York, NY</option>
+                    <option value="london">London, UK</option>
+                </select>
             </div>
             <div id="caps-container"></div>
         </fieldset>
