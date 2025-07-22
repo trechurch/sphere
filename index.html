@@ -1,20 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Wireframe Earth with Modular Controls</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Earth Visualization</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="dat-gui-container" class="hidden"></div>
-
-    <div id="html-controls">
+    <div id="dat-gui-container"></div>
+    <div id="html-controls" class="controls">
         <div class="panel-header">
             <h3>HTML Controls</h3>
             <button id="toggle-to-dat-gui">Use dat.GUI</button>
         </div>
-
         <fieldset>
             <legend>Global Settings</legend>
             <div class="control-row">
@@ -23,73 +21,75 @@
             </div>
             <div class="control-row">
                 <label for="rotate-sphere">Rotate Earth</label>
-                <input type="checkbox" id="rotate-sphere">
+                <input type="checkbox" id="rotate-sphere" checked>
             </div>
-             <div class="control-row">
+            <div class="control-row">
                 <label for="preserve-target">Preserve Anchor</label>
                 <input type="checkbox" id="preserve-target">
             </div>
-            <button id="reset-camera-btn">Reset Camera</button>
+            <div class="control-row">
+                <button id="reset-camera-btn" class="full-width">Reset Camera</button>
+            </div>
         </fieldset>
-
         <fieldset>
             <legend>Caps</legend>
-            <div id="caps-container">
-                </div>
-            <button id="add-cap-btn" class="full-width">Add New Cap</button>
+            <div id="caps-container"></div>
+            <div class="control-row">
+                <button id="add-cap-btn" class="full-width">Add New Cap</button>
+            </div>
         </fieldset>
     </div>
 
     <template id="cap-template">
         <div class="cap-controls">
-            <h4 class="cap-title"></h4>
+            <h4 class="cap-title">Cap</h4>
             <div class="control-grid">
-                <div class="control-row-stacked">
+                <div class="control-row">
                     <label>X: <span class="value-display"></span></label>
-                    <input type="range" class="cap-control" data-property="x">
+                    <input type="range" data-property="x">
                 </div>
-                <div class="control-row-stacked">
+                <div class="control-row">
                     <label>Y: <span class="value-display"></span></label>
-                    <input type="range" class="cap-control" data-property="y">
+                    <input type="range" data-property="y">
                 </div>
-                <div class="control-row-stacked">
+                <div class="control-row">
                     <label>Height: <span class="value-display"></span></label>
-                    <input type="range" class="cap-control" data-property="z">
+                    <input type="range" data-property="z">
                 </div>
-                 <div class="control-row-stacked">
+                <div class="control-row">
                     <label>Size: <span class="value-display"></span></label>
-                    <input type="range" class="cap-control" data-property="size">
+                    <input type="range" data-property="size">
                 </div>
-                <div class="control-row-stacked">
+                <div class="control-row">
                     <label>X Scaler</label>
-                    <select class="cap-control" data-property="xScaler"></select>
+                    <select data-property="xScaler"></select>
                 </div>
-                <div class="control-row-stacked">
+                <div class="control-row">
                     <label>Y Scaler</label>
-                    <select class="cap-control" data-property="yScaler"></select>
+                    <select data-property="yScaler"></select>
                 </div>
-                 <div class="control-row-stacked">
+                <div class="control-row">
                     <label>Height Scaler</label>
-                    <select class="cap-control" data-property="zScaler"></select>
+                    <select data-property="zScaler"></select>
                 </div>
-                 <div class="control-row-stacked">
+                <div class="control-row">
                     <label>Size Scaler</label>
-                    <select class="cap-control" data-property="sizeScaler"></select>
+                    <select data-property="sizeScaler"></select>
                 </div>
-                 <div class="control-row-stacked">
+                <div class="control-row">
                     <label>Direction</label>
-                    <select class="cap-control" data-property="direction"></select>
+                    <select data-property="direction"></select>
+                </div>
+                <div class="control-row">
+                    <button class="remove-cap-btn full-width">Remove Cap</button>
                 </div>
             </div>
-            <button class="remove-cap-btn">Remove Cap</button>
         </div>
     </template>
-    
-    <div id="error"></div>
 
-    <script src="https://cdn.jsdelivr.net/npm/dat.gui@0.7.9/build/dat.gui.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/js/controls/OrbitControls.js"></script>
-    <script type="module" src="main.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.7/dat.gui.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="main.js"></script>
 </body>
 </html>
