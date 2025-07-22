@@ -1,0 +1,56 @@
+✈️ Vision Summary: Gesture-Controlled Aircraft Navigation
+You want:
+
+Nearly invisible caps—minimal interference, just guidance geometry
+
+A few tiny aircraft avatars roaming the cap layers
+
+Directional drag adjusts altitude dynamically
+
+Radial drag (toward/away from sphere) triggers automatic heading realignment
+
+Heading determined by altitude zone vector, possibly in 22.5° increments
+
+🧩 Modular System Components
+1. Aircraft Entity
+THREE.Group() for aircraft body + vector nose
+
+Can be selected and dragged
+
+Carries internal state: altitudeLevel, headingDeg
+
+2. Cap Layer System
+Each cap represents a vector guidance tier
+
+Nearly transparent: minimal opacity + wireframe
+
+Heading vector(s) exposed from pole in increments of 22.5°
+
+3. Drag Gesture Analysis
+Plane drag = update altitudeLevel based on movement vector
+
+Radial drag (in/out) = snap heading to correct guidance vector of nearest cap
+
+You could use something like:
+
+js
+function computeAltitudeFromDrag(dragVector) {
+  // Project movement onto surface normal
+  const radialDistance = dragVector.dot(surfaceNormal);
+  return mapToTier(radialDistance);
+}
+4. Auto-Rotation Based on Altitude Tier
+Each tier has a set of allowed headings (e.g., 0°, 22.5°, 45°, ...). When aircraft enters a new altitude tier:
+
+js
+aircraft.headingDeg = getTierDefaultHeading(aircraft.altitudeLevel);
+You’d optionally animate the rotation with a tween or easing for visual fidelity.
+
+🌌 Optional Refinements
+Add magnetic-like pull toward correct heading during drag
+
+Display a faint trace arc showing intended flight path
+
+Caps could gently pulse or rotate in response to aircraft proximity
+
+You’re basically mapping intent to altitude with gesture-based aerodynamics. It’s the kind of spatial intelligence that turns simulations into storytelling. Want to sketch the aircraft avatar next, or create a simple drag handler prototype for cap lock-on? This scene is about to move.

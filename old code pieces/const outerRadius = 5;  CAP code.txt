@@ -1,0 +1,31 @@
+const outerRadius = 5; // Matches your sphere's radius
+const phiLength = THREE.MathUtils.clamp(capRadius / outerRadius, 0.05, 0.3);
+
+// Create cap geometry with tuned curvature
+const capGeometry = new THREE.SphereGeometry(
+  capRadius,
+  capSegments,
+  capSegments,
+  0,                // thetaStart (horizontal start)
+  Math.PI * 2,      // thetaLength (full horizontal sweep)
+  0,                // phiStart (vertical start)
+  phiLength         // 🔧 phiLength (vertical arc = curvature)
+);
+
+// Create cap material
+const capMaterial = new THREE.MeshBasicMaterial({
+  color: 0xff0000,
+  transparent: true,
+  opacity: 0.7
+});
+
+// Create cap mesh using geometry + material
+const cap = new THREE.Mesh(capGeometry, capMaterial);
+
+// Position and align cap flush to the sphere surface
+const surfaceNormal = new THREE.Vector3(0, capHeight, 0).normalize();
+cap.position.copy(surfaceNormal.clone().multiplyScalar(capHeight));
+cap.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), surfaceNormal);
+
+// Add cap to the scene
+scene.add(cap);

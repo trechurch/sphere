@@ -1,0 +1,36 @@
+Sphere Program outline
+A. should show sphere with an accurate skin of the earth.  the coordinates used within the program should visually relate to the real world locations that they belong to.
+
+B. There should be a control panel that lets you create, edit, remove, and bring focus to spherical caps that can be stored in an array. also on the control panel there should be a file interface that will let the user load, save, ) edit properties of these arrays.
+B2. the control should also let turn rotation of sphere on and off from control panel 
+B3. spherical caps cover a portion of the sphere, they should be parallel to the surface of the sphere at all times (matching the exact curvature of the sp can raise from the surface of the sphere outwards using an entry field and a scaler toggle from control panel
+B4. the spherical cap should be able to be resized using an entry field and a scaler toggle from control panel
+
+B5. there should be a directional indicator on the surface of the spherical cap that can be effected by a pull down menu on the control panel. (one portion of the surface and one section of the edge thatmost closely (directions choices are currently limited to 8 possibilities(45° increments)(N,NW,W,SW,S,SE,E,NE))
+G. there should be an X, Y, and Z entry field that let's the cap be moved to any starting coordinate on or above the sphere from control panel (X and Y plot point on sphere(globe) Z is distance away from surface)
+H. there should be camera control allowing granular inspection of the interaction between all artifacts.
+
+Rules
+1.  at all times the cap should be parallel to the sphere
+2.  at all times the cap should clearly indicate the direction specified for it 
+    (in relation to it's current X,Y anchor point)
+3.  increasing or decreasing the cap's size should not effect its position on or distance from the sphere
+4.  changing the cap's position on or distance from the surface of the sphere should not effect the cap's size, but should effect the directional indicator on the surface of the cap if the x,y coordinates are changed..
+5.  anytime a value is changed on the control panel, it should immediately effect the rendered artifacts.
+6.  all fields should be clearly labeled on the control panel
+7.  for the sake of proof of concept, all cap's initial position should be aligned with Houston Texas. 
+if there is already a cap at the coordinates when new cap is assigned, it will maintain the assigned coordinates, and automatically be stacked above the uppermost cap at that location
+8. the available space left on the control panel should contain a "key" that lists popular cities and their coordinates
+
+anything that doesn't work toward these basic needs or follow these rules should be justified, clarified, or removed.
+anything not present that is needed should be added immediately
+
+** Desire **
+
+i would like the cap to be modular, and governed by a specific data set, that can be duplicated 
+(ie. an array for multiple caps that can be present on the sphere simultaneously)
+
+Some caps could be stacked one atop another - over the same coordinates,
+some caps could merge being at the same distance from the surface, but anchored to different points on the surface
+some caps could cover the area above multiple smaller caps.
+

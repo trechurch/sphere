@@ -1,0 +1,85 @@
+// --- Create Initial Cap Geometry ---
+      let phiLength = THREE.MathUtils.clamp(capRadius / outerRadius, 0.05, 0.3);
+      let capGeometry = new THREE.SphereGeometry(
+        capRadius,
+        capSegments,
+        capSegments,
+        0,
+        Math.PI * 2,
+        0,
+        phiLength
+      );
+
+  const surfaceNormal = new THREE.Vector3(0, capHeight, 0).normalize();
+        cap.position.copy(surfaceNormal.clone().multiplyScalar(capHeight));
+        cap.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), surfaceNormal);
+
+const dirMarker = new THREE.Mesh(dirGeometry, dirMaterial);
+
+  // Align cap to surface normal
+      cap.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), surfaceNormal);
+      console.log('Cap created at:', cap.position.toArray());
+      scene.add(new THREE.AxesHelper(2)); // To visualize orientation
+      console.log('Cap created at:', cap.position.toArray());
+      scene.add(new THREE.AxesHelper(2)); // To visualize orientation
+      scene.add(cap);
+
+
+      dirMarker.position.copy(directionVector.clone().multiplyScalar(capRadius));
+      dirMarker.lookAt(new THREE.Vector3(0, 0, 0));
+      cap.add(dirMarker); // Attach to cap
+
+
+
+      // --- Create Cap Material Once ---
+      const capMaterial = new THREE.MeshBasicMaterial({
+        color: 0xff0000,
+        transparent: true,
+        opacity: 0.7
+      });
+      
+
+      // --- Create Cap Mesh & Position ---
+      const cap = new THREE.Mesh(capGeometry, capMaterial);
+      const surfaceNormal = new THREE.Vector3(0, capHeight, 0).normalize();
+      const anchorY = outerRadius + capHeight; // capHeight becomes surface offset
+      cap.position.copy(surfaceNormal.clone().multiplyScalar(anchorY));
+
+      // --- SPINNING STATE ---  
+      const degrees = parseFloat(document.getElementById('capDirection').value);
+      const radians = THREE.MathUtils.degToRad(degrees);
+  
+
+      // --- Create Direction Vector ---
+      const dirGeometry = new THREE.ConeGeometry(0.2, 0.5, 16);
+      const dirMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+
+
+      // --- UI Listeners for Cap Adjustments ---
+      document.getElementById('capHeight').addEventListener('input', e => {
+        const updatedParams = getCurrentUIValues();
+        rebuildCap(updatedParams);
+      });
+      console.log('Cap radius:', capRadius);
+      console.log('Phi length:', phiLength);
+      console.log('Cap position:', cap.position.toArray());
+      console.log('Cap height:', capHeight);
+      console.log('Cap visible:', cap.visible);
+      document.getElementById('capHeight').addEventListener('input', e => {
+        const updatedParams = getCurrentUIValues();
+        rebuildCap(updatedParams);
+      });
+      // --- HANDLE WINDOW RESIZE ---
+      window.addEventListener('resize', () => {
+        camera.aspect = (window.innerWidth - 250) / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth - 250, window.innerHeight);
+        updateCap();
+      });
+
+      const debugMarker = new THREE.Mesh(
+        new THREE.SphereGeometry(0.1, 8, 8),
+        new THREE.MeshBasicMaterial({ color: 0x00ffff })
+      );
+      scene.add(debugMarker);
+      

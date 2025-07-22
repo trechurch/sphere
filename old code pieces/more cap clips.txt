@@ -1,0 +1,43 @@
+folder
+  .add(cap, 'x', -sphereRadius, sphereRadius, 1)
+  .name('X Coordinate')
+  .onChange(() => {
+    updateCaps();
+    focusCameraOnCap(cap);
+});
+folder
+  .add(cap, 'xScaler', xyScalerLabels)
+  .name('X Scaler')
+  .onChange(() => {
+    updateCaps();
+    focusCameraOnCap(cap);
+});
+
+
+
+resetCameraToDefault()
+
+
+
+
+
+function resetCameraToDefault() {
+    camera.position.set(0, 0, 12742);
+    controls.target.set(0, 0, 0);
+    controls.update();
+}
+
+
+
+            Math.PI;
+          const theta = (lat * Math.PI) / 180;
+          const phi = (lon * Math.PI) / 180;
+          const radius = sphereRadius + scaledHeight;
+          const posX = radius * Math.sin(theta) * Math.cos(phi);
+          const posY = radius * Math.sin(theta) * Math.sin(phi);
+          const posZ = radius * Math.cos(theta);
+          const thetaLength = Math.max(0.0001, scaledSize * 0.5);
+          const distance = Math.max(100, sphereRadius * thetaLength * 10);
+          camera.position.set(posX, posY, posZ + distance);
+          controls.target.set(posX, posY, posZ);
+          controls.update();

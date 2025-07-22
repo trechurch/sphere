@@ -243,6 +243,9 @@
               caps.forEach(cap => createCap(cap));
           }
 
+              const capFolder = gui.addFolder('Caps');
+              let capControllers = [];
+
           // GUI controls
           if (gui) {
               gui.addColor(settings, 'backgroundColor').onChange(value => {
@@ -256,9 +259,6 @@
               });
               gui.add(settings, 'resetCamera').name('Reset Camera');
               gui.add(settings, 'preserveTarget').name('Preserve Orbit Anchor');
-
-              const capFolder = gui.addFolder('Caps');
-              let capControllers = [];
 
               function updateCapGUI() {
                   capControllers.forEach(ctrl => capFolder.removeFolder(ctrl));

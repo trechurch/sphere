@@ -1,0 +1,109 @@
+// main.js — ES Module version (OrbitControls via jsm path)
+
+import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { GUI } from 'dat.gui';
+
+// DOM elements
+const datGUIContainer = document.getElementById('dat-gui-container');
+const htmlControls = document.getElementById('html-controls');
+const toggleBtn = document.getElementById('toggle-to-dat-gui');
+
+// Renderer setup
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+// Scene setup
+const scene = new THREE.Scene();
+
+// Camera setup
+const camera = new THREE.PerspectiveCamera(
+    75,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    10000
+);
+camera.position.set(0, 0, 3000);
+
+// OrbitControls
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+
+// Resize handling
+window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// Earth
+const sphereGeom = new THREE.SphereGeometry(6371, 64, 64);
+const sphereMat = new THREE.MeshBasicMaterial({ wireframe: true });
+const earthMesh = new THREE.Mesh(sphereGeom, sphereMat);
+scene.add(earthMesh);
+
+// Global state
+let rotateEarth = false;
+let preserveAnchor = false;
+
+// GUI setup
+const gui = new GUI({ autoPlace: false });
+datGUIContainer.appendChild(gui.domElement);
+datGUIContainer.classList.add('hidden');
+
+const globalFolder = gui.addFolder('Global Settings');
+globalFolder.addColor({ bgColor: '#000000' }, 'bgColor').onChange((val) => {
+    renderer.setClearColor(val);
+});
+globalFolder.add({ rotate: false }, 'rotate').onChange((val) => {
+    rotateEarth = val;
+});
+globalFolder.add({ preserve: false }, 'preserve').onChange((val) => {
+    preserveAnchor = val;
+});
+globalFolder.add({ reset: () => resetCamera() }, 'reset');
+globalFolder.open();
+
+// HTML toggle
+toggleBtn.addEventListener('click', () => {
+    htmlControls.classList.toggle('hidden');
+    datGUIContainer.classList.toggle('hidden');
+});
+
+// Cap logic (placeholder — ready for modular injection)
+const caps = [];
+
+document.getElementById('add-cap-btn').addEventListener('click', () => {
+    const cap = createCap({ x: 0, y: 0, h: 10, size: 1, direction: 'up' });
+    caps.push(cap);
+    scene.add(cap.mesh);
+    createCapControls(cap);
+});
+
+function createCap(params) {
+    const capGeom = new THREE.CylinderGeometry(params.size, params.size, params.h, 32);
+    const capMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+    const capMesh = new THREE.Mesh(capGeom, capMat);
+    capMesh.position.set(params.x, params.y, 0);
+    return { params, mesh: capMesh };
+}
+
+function createCapControls(cap) {
+    // This function should sync inputs to cap.params and update mesh position/size
+    // You likely already have this logic wired into your template system
+}
+
+function resetCamera() {
+    camera.position.set(0, 0, 3000);
+    controls.reset();
+}
+
+// Animation loop
+function animate() {
+    requestAnimationFrame(animate);
+    if (rotateEarth) earthMesh.rotation.y += 0.005;
+    controls.update();
+    renderer.render(scene, camera);
+}
+animate();

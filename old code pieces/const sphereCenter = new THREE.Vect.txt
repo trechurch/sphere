@@ -1,0 +1,14 @@
+const sphereCenter = new THREE.Vector3(0, 0, 0);
+const surfaceNormal = new THREE.Vector3(0, capHeight, 0);
+
+// This moves the cap just outside the sphere
+const offset = surfaceNormal.clone().normalize().multiplyScalar(capHeight);
+cap.position.copy(offset);
+
+// Orient the cap so its face points toward the center
+cap.lookAt(sphereCenter);
+
+// Rotate 180° around X to make the cap face outward and lie parallel
+cap.rotateX(Math.PI);
+
+scene.add(cap);
