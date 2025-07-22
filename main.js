@@ -104,18 +104,28 @@ function vector3ToLatLon(vector) {
 const houstonCoords = { lat: 29.76, lon: -95.36 };
 let caps = [{
     lat: houstonCoords.lat, lon: houstonCoords.lon, h: 0, size: 0.1, direction: "N",
-    xScaler: 4, yScaler: 4, hScaler: 0, sizeScaler: 2, mesh: null,
+    xScaler: 4, yScaler: 4, hScaler: 4, sizeScaler: 2, mesh: null,
 }];
+
+// Color cycle for caps
+const capColors = [
+    0xff0000, // Red
+    0x00ff00, // Green
+    0x0000ff, // Blue
+    0xffff00, // Yellow
+    0xff00ff, // Magenta
+    0x00ffff, // Cyan
+];
 
 const xyScalers = [0.1, 0.3, 0.5, 0.7, 1];
 const sizeScalers = [0.05, 0.1, 0.2, 0.5, 1];
 const directions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
 const directionColors = {
-    "N": 0xff0000, "NE": 0xffa500, "E": 0xffff00, "SE": 0x00ff00,
-    "S": 0x00ffff, "SW": 0x0000ff, "W": 0x800080, "NW": 0xff00ff
+    "N": 0xffffff, "NE": 0xffffff, "E": 0xffffff, "SE": 0xffffff,
+    "S": 0xffffff, "SW": 0xffffff, "W": 0xffffff, "NW": 0xffffff
 };
 const xyScalerLabels = { "0.1x": 0, "0.3x": 1, "0.5x": 2, "0.7x": 3, "1x": 4 };
-const sizeScalerLabels = { "Tiny": 0, "Small": 1, "Medium": 2, "Large": 3, "Hurge": 4 };
+const sizeScalerLabels = { "Tiny": 0, "Small": 1, "Medium": 2, "Large": 3, "Huge": 4 };
 
 function resetCameraToDefault() {
     camera.position.set(0, 0, sphereRadius * 3);
@@ -134,7 +144,7 @@ function focusCameraOnCap(cap) {
     controls.update();
 }
 
-function createCap(cap) {
+function createCap(cap, index) {
     if (cap.mesh) earthGroup.remove(cap.mesh);
 
     const scaledHeight = cap.h * xyScalers[cap.hScaler];
@@ -147,23 +157,23 @@ function createCap(cap) {
 
     // Spherical cap with same curvature as Earth
     const capRadius = sphereRadius + scaledHeight;
-    const capHeight = capRadius * (1 - Math.cos(cap.size * sizeScalers[cap.sizeScaler] * Math.PI / 180));
     const thetaLength = cap.size * sizeScalers[cap.sizeScaler] * Math.PI / 180;
     const capGeo = new THREE.SphereGeometry(capRadius, 32, 16, 0, Math.PI * 2, 0, thetaLength);
     const capMat = new THREE.MeshBasicMaterial({
-        color: directionColors[cap.direction] || 0xff0000,
+        color: capColors[index % capColors.length],
         transparent: true,
         opacity: 0.9,
         side: THREE.DoubleSide
     });
     const capMeshMain = new THREE.Mesh(capGeo, capMat);
 
+    // Directional indicator
     const directionAngle = directions.indexOf(cap.direction) * (Math.PI / 4);
-    const directionGeo = new THREE.SphereGeometry(capRadius, 32, 16, directionAngle - Math.PI / 8, Math.PI / 4, 0, thetaLength);
+    const directionGeo = new THREE.SphereGeometry(capRadius, 32, 16, directionAngle - Math.PI / 8, Math.PI / 4, 0, thetaLength * 1.1); // Slightly larger
     const directionMat = new THREE.MeshBasicMaterial({
-        color: directionColors[cap.direction] || 0xff0000,
+        color: directionColors[cap.direction],
         transparent: true,
-        opacity: 0.7,
+        opacity: 0.5,
         side: THREE.DoubleSide
     });
     const directionMesh = new THREE.Mesh(directionGeo, directionMat);
@@ -178,9 +188,17 @@ function createCap(cap) {
     earthGroup.add(capMesh);
 }
 
-function updateAndFocus(cap) {
-    createCap(cap);
-    focusCameraOnCap(cap);
+function updateCap(cap, index) {
+    createCap(cap, index);
+}
+
+function updateAndFocus(cap, index, forceFocus = false) {
+    const oldLat = cap.mesh?.userData.originalPosition.lat || cap.lat;
+    const oldLon = cap.mesh?.userData.originalPosition.lon || cap.lon;
+    updateCap(cap, index);
+    if (forceFocus || Math.abs(cap.lat - oldLat) > 0.1 || Math.abs(cap.lon - oldLon) > 0.1) {
+        focusCameraOnCap(cap);
+    }
 }
 
 function onMouseClick(event) {
@@ -200,7 +218,7 @@ function onMouseClick(event) {
             selectedCap.lat = lat;
             selectedCap.lon = lon;
             selectedCap.h = 0;
-            updateAndFocus(selectedCap);
+            updateAndFocus(selectedCap, settings.selectedCapIndex, true);
             renderHtmlCapsUI();
         }
     }
@@ -243,7 +261,9 @@ try {
     document.getElementById('rotate-sphere').addEventListener('change', (e) => settings.rotateSphere = e.target.checked);
     document.getElementById('rotate-sphere').checked = settings.rotateSphere;
     document.getElementById('preserve-target').addEventListener('change', (e) => settings.preserveTarget = e.target.checked);
-    document.getElementById('reset-camera-btn').addEventListener('click', settings.resetCamera);
+    document.getElementById('reset-camera-btn').addEventListener('click', () => {
+        resetCameraToDefault();
+    });
 
     const pickCapContainer = document.createElement('div');
     pickCapContainer.className = 'control-row';
@@ -283,13 +303,13 @@ try {
         const newHeight = maxHeight + 10;
         caps.push({
             lat: houstonCoords.lat, lon: houstonCoords.lon, h: newHeight, size: 0.1, direction: "N",
-            xScaler: 4, yScaler: 4, hScaler: 0, sizeScaler: 2, mesh: null,
+            xScaler: 4, yScaler: 4, hScaler: 4, sizeScaler: 2, mesh: null,
         });
         settings.selectedCapIndex = caps.length - 1;
         capIndexController.setValue(settings.selectedCapIndex);
         capIndexController.max(caps.length - 1);
         renderHtmlCapsUI();
-        updateAndFocus(caps[caps.length - 1]);
+        updateAndFocus(caps[caps.length - 1], caps.length - 1, true);
     });
 
     function renderHtmlCapsUI() {
@@ -321,13 +341,13 @@ try {
                     el.min = min;
                     el.max = max;
                     el.step = step;
-                    el.value = cap[prop];
+                    el.value = Math.max(min, Math.min(max, cap[prop])); // Constrain h >= 0
                     const valueDisplay = el.previousElementSibling?.querySelector('.value-display');
                     if (valueDisplay) valueDisplay.textContent = el.value;
                     el.addEventListener('input', (e) => {
                         cap[prop] = parseFloat(e.target.value);
                         if (valueDisplay) valueDisplay.textContent = e.target.value;
-                        updateAndFocus(cap);
+                        updateAndFocus(cap, index);
                     });
                 } else if (type === 'select') {
                     const source = Array.isArray(options) ? options : Object.keys(options);
@@ -339,7 +359,7 @@ try {
                     el.value = cap[prop];
                     el.addEventListener('change', (e) => {
                         cap[prop] = Array.isArray(options) ? e.target.value : parseInt(e.target.value);
-                        updateAndFocus(cap);
+                        updateAndFocus(cap, index);
                     });
                 }
             });
@@ -375,7 +395,7 @@ try {
     scene.background = null;
     resetCameraToDefault();
     renderHtmlCapsUI();
-    caps.forEach(createCap);
+    caps.forEach((cap, index) => updateCap(cap, index));
     focusCameraOnCap(caps[0]);
 } catch (e) {
     console.error('Error initializing UI:', e);
@@ -391,7 +411,7 @@ function animate() {
         const rotationQuaternion = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), elapsedTime * 0.25);
         earthMesh.quaternion.copy(rotationQuaternion);
         cloudMesh.quaternion.copy(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), elapsedTime * 0.28));
-        caps.forEach(cap => {
+        caps.forEach((cap, index) => {
             if (cap.mesh) {
                 const scaledHeight = cap.h * xyScalers[cap.hScaler];
                 const positionVector = latLonToVector3(cap.lat * xyScalers[cap.xScaler], cap.lon * xyScalers[cap.yScaler], scaledHeight);
