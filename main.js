@@ -1,32 +1,79 @@
 // --- Basic Scene Setup ---
 const sphereRadius = 6371; // Earth's radius in km
-let scene, camera, renderer, controls, sphereMaterial, earthGroup;
+let scene, camera, renderer, controls, earthMesh, cloudMesh;
 
 scene = new THREE.Scene();
-camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 20000);
+camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 200000); // Increased far plane for starfield
 renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
-earthGroup = new THREE.Group();
+const earthGroup = new THREE.Group();
 scene.add(earthGroup);
 
-const geometry = new THREE.IcosahedronGeometry(sphereRadius, 5);
-const edges = new THREE.EdgesGeometry(geometry);
-sphereMaterial = new THREE.LineBasicMaterial({ color: "#00ff00" });
-const sphere = new THREE.LineSegments(edges, sphereMaterial);
-earthGroup.add(sphere);
+// Use a TextureLoader for all textures
+const textureLoader = new THREE.TextureLoader();
 
+// --- 3D Object Creation ---
+
+// Galaxy starfield
+const starGeometry = new THREE.SphereGeometry(150000, 64, 64); // A very large sphere
+const starMaterial = new THREE.MeshBasicMaterial({
+    map: textureLoader.load('texture/galaxy.png'),
+    side: THREE.BackSide // Render on the inside of the sphere
+});
+const starMesh = new THREE.Mesh(starGeometry, starMaterial);
+scene.add(starMesh);
+
+// Earth mesh
+const earthGeometry = new THREE.SphereGeometry(sphereRadius, 64, 64);
+const earthMaterial = new THREE.MeshPhongMaterial({
+    map: textureLoader.load('texture/earthmap1k.jpg'),
+    bumpMap: textureLoader.load('texture/earthbump.jpg'),
+    bumpScale: 0.5
+});
+earthMesh = new THREE.Mesh(earthGeometry, earthMaterial);
+earthGroup.add(earthMesh);
+
+// Cloud mesh
+const cloudGeometry = new THREE.SphereGeometry(sphereRadius + 15, 64, 64); // Slightly larger than Earth
+const cloudMaterial = new THREE.MeshPhongMaterial({
+    map: textureLoader.load('texture/earthCloud.png'),
+    transparent: true,
+    opacity: 0.8
+});
+cloudMesh = new THREE.Mesh(cloudGeometry, cloudMaterial);
+earthGroup.add(cloudMesh);
+
+
+// --- Lighting ---
+
+// Ambient light to softly illuminate the entire scene
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
+scene.add(ambientLight);
+
+// Directional light to simulate the Sun
+const sunLight = new THREE.DirectionalLight(0xffffff, 1.0);
+sunLight.position.set(-15000, 5000, 10000); // Position the light source far away
+scene.add(sunLight);
+
+
+// --- Camera and Controls ---
 controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.05;
-controls.minDistance = 100;
-controls.maxDistance = 20000;
+
+// Set camera zoom limits
+controls.minDistance = sphereRadius + 100; // Stop just above the surface
+
+// Calculate max distance for the Earth to be 1/16th of the view
+const fovInRadians = camera.fov * (Math.PI / 180);
+controls.maxDistance = (16 * sphereRadius) / Math.tan(fovInRadians / 2);
+
 
 // --- Data and State Management ---
 const settings = {
     backgroundColor: "#000000",
-    wireframeColor: "#00ff00",
-    rotateSphere: false,
+    rotateSphere: true, // Let's have it rotate by default
     preserveTarget: false,
     resetCamera: () => {
         if (caps.length > 0) focusCameraOnCap(caps[caps.length - 1]);
@@ -58,7 +105,7 @@ const sizeScalerLabels = { "Neighborhood": 0, "Small Town": 1, "Large City": 2, 
 
 // --- Core 3D and UI Functions ---
 function resetCameraToDefault() {
-    camera.position.set(0, 0, sphereRadius * 2);
+    camera.position.set(0, 0, sphereRadius * 3);
     if (!settings.preserveTarget) controls.target.set(0, 0, 0);
     controls.update();
 }
@@ -86,9 +133,9 @@ function createCap(cap) {
     const capMesh = new THREE.Group();
     capMesh.position.copy(positionVector.multiplyScalar(sphereRadius));
     capMesh.quaternion.copy(quaternion);
-    const capGeo = new THREE.SphereGeometry(sphereRadius + scaledHeight, 32, 16, 0, Math.PI * 2, 0, scaledSize);
+    const capGeo = new THREE.SphereGeometry(sphereRadius + scaledHeight + 5, 32, 16, 0, Math.PI * 2, 0, scaledSize); // Elevated caps
     const capEdges = new THREE.EdgesGeometry(capGeo);
-    const capMat = new THREE.LineBasicMaterial({ color: 0xff0000 });
+    const capMat = new THREE.LineBasicMaterial({ color: 0xff0000, transparent: true, opacity: 0.9 });
     const capLines = new THREE.LineSegments(capEdges, capMat);
     capMesh.add(capLines);
     capMesh.userData.size = scaledSize;
@@ -115,17 +162,20 @@ const gui = new dat.GUI({ autoPlace: false });
 datGuiContainer.appendChild(gui.domElement);
 datGuiContainer.classList.add('controls');
 gui.addColor(settings, "backgroundColor").onChange(v => scene.background = new THREE.Color(v));
-gui.addColor(settings, "wireframeColor").onChange(v => sphereMaterial.color.set(v));
-gui.add(settings, "rotateSphere").onChange(v => earthGroup.userData.rotate = v);
+// The wireframe color controller is removed
+gui.add(settings, "rotateSphere").name("Rotate Earth").onChange(v => settings.rotateSphere = v);
 gui.add(settings, "resetCamera").name("Reset Camera");
 gui.add(settings, "preserveTarget").onChange(v => settings.preserveTarget = v);
 gui.add(settings, 'toggleUI').name('Switch to HTML UI');
 
 // 2. HTML Controls Setup
 htmlControlsContainer.classList.add('controls');
-document.getElementById('bg-color').addEventListener('input', (e) => scene.background = new THREE.Color(e.target.value));
-document.getElementById('wireframe-color').addEventListener('input', (e) => sphereMaterial.color.set(e.target.value));
-document.getElementById('rotate-sphere').addEventListener('change', (e) => earthGroup.userData.rotate = e.target.checked);
+document.getElementById('bg-color').addEventListener('input', (e) => {
+    // Setting background to null makes it transparent, showing the starfield
+    scene.background = e.target.value === '#000000' ? null : new THREE.Color(e.target.value);
+});
+document.getElementById('rotate-sphere').addEventListener('change', (e) => settings.rotateSphere = e.target.checked);
+document.getElementById('rotate-sphere').checked = settings.rotateSphere; // Set initial state
 document.getElementById('preserve-target').addEventListener('change', (e) => settings.preserveTarget = e.target.checked);
 document.getElementById('reset-camera-btn').addEventListener('click', settings.resetCamera);
 document.getElementById('add-cap-btn').addEventListener('click', () => {
@@ -203,14 +253,24 @@ toggleToDatGuiBtn.addEventListener('click', toggleControlPanel);
 // --- Initial Render and Animation Loop ---
 function animate() {
     requestAnimationFrame(animate);
-    if (earthGroup.userData.rotate) {
-        earthGroup.rotation.y += 0.0005;
+
+    // Rotation based on real-time to be more accurate than frame rate
+    const elapsedTime = Date.now() * 0.0001;
+    
+    if (settings.rotateSphere) {
+        // Earth's rotation is ~2pi radians in 24 hours.
+        // Simplified for visual effect.
+        earthMesh.rotation.y = elapsedTime * 0.25;
+        cloudMesh.rotation.y = elapsedTime * 0.28; // Clouds move slightly faster
     }
+    starMesh.rotation.y = elapsedTime * 0.01;
+
     controls.update();
     renderer.render(scene, camera);
 }
 
 // Set initial state
+scene.background = null; // Use starfield as background
 resetCameraToDefault();
 renderHtmlCapsUI(); // Build the initial HTML UI
 caps.forEach(createCap);
