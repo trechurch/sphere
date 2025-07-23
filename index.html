@@ -5,138 +5,106 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sphere Program</title>
     <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="dat-gui-container"></div>
+    <div id="html-controls" class="controls hidden">
+        <div class="panel-header">
+            <h3>HTML Controls</h3>
+            <button id="toggle-to-dat-gui">Use dat.GUI</button>
+        </div>
+        <fieldset>
+            <legend>Global Settings</legend>
+            <div class="control-row">
+                <label>Background</label>
+                <input type="color" id="bg-color" value="#000000">
+            </div>
+            <div class="control-row">
+                <label>Rotate Earth</label>
+                <input type="checkbox" id="rotate-sphere" checked>
+            </div>
+            <div class="control-row">
+                <label>Preserve Anchor</label>
+                <input type="checkbox" id="preserve-target">
+            </div>
+            <div class="control-row">
+                <button id="reset-camera-btn" class="full-width">Reset Camera</button>
+            </div>
+        </fieldset>
+        <fieldset>
+            <legend>Caps</legend>
+            <div class="control-row">
+                <button id="add-cap-btn" class="full-width">Add New Cap</button>
+            </div>
+            <div class="control-row">
+                <label>File Interface</label>
+                <div>
+                    <button id="save-caps-btn">Save Caps</button>
+                    <input type="file" id="load-caps-input" accept=".json">
+                </div>
+            </div>
+            <div id="caps-container"></div>
+        </fieldset>
+        <fieldset>
+            <legend>City Key</legend>
+            <div id="city-key" class="control-row-stacked"></div>
+        </fieldset>
+    </div>
+
+    <template id="cap-template">
+        <div class="cap-controls">
+            <h3 class="cap-title"></h3>
+            <div class="control-grid">
+                <div class="control-row">
+                    <label>X: <span class="value-display"></span></label>
+                    <input type="range" data-property="x">
+                </div>
+                <div class="control-row">
+                    <label>Y: <span class="value-display"></span></label>
+                    <input type="range" data-property="y">
+                </div>
+                <div class="control-row">
+                    <label>Height: <span class="value-display"></span></label>
+                    <input type="range" data-property="h">
+                </div>
+                <div class="control-row">
+                    <label>Size: <span class="value-display"></span></label>
+                    <input type="range" data-property="size">
+                </div>
+                <div class="control-row">
+                    <label>X Scaler</label>
+                    <select data-property="xScaler"></select>
+                </div>
+                <div class="control-row">
+                    <label>Y Scaler</label>
+                    <select data-property="yScaler"></select>
+                </div>
+                <div class="control-row">
+                    <label>Height Scaler</label>
+                    <select data-property="hScaler"></select>
+                </div>
+                <div class="control-row">
+                    <label>Size Scaler</label>
+                    <select data-property="sizeScaler"></select>
+                </div>
+                <div class="control-row">
+                    <label>Direction</label>
+                    <select data-property="direction"></select>
+                </div>
+            </div>
+            <button class="remove-cap-btn full-width">Remove Cap</button>
+        </div>
+    </template>
+
     <script type="importmap">
         {
             "imports": {
-                "three": "https://cdn.skypack.dev/three@0.156.0",
-                "three/examples/jsm/controls/OrbitControls.js": "https://cdn.skypack.dev/three@0.156.0/examples/jsm/controls/OrbitControls.js",
-                "dat.gui": "https://cdn.skypack.dev/dat.gui@0.7.9"
+                "three": "https://unpkg.com/three@0.156.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.156.0/examples/jsm/"
             }
         }
     </script>
     <script type="module" src="main.js"></script>
-</head>
-<body>
-    <div id="dat-gui-container" class="controls hidden"></div>
-    <div id="html-controls" class="controls">
-        <h2>Global Settings</h2>
-        <div class="control-row">
-            <label for="bg-color">Background</label>
-            <input type="color" id="bg-color" value="#000000">
-        </div>
-        <div class="control-row">
-            <label for="rotate-sphere">Rotate Earth</label>
-            <input type="checkbox" id="rotate-sphere" checked>
-        </div>
-        <div class="control-row">
-            <label for="focal-anchor">Focal Anchor</label>
-            <select id="focal-anchor">
-                <option value="earth-core">Earth Core</option>
-                <option value="north-pole">North Pole</option>
-                <option value="south-pole">South Pole</option>
-                <option value="binary-center">Binary Center</option>
-            </select>
-        </div>
-        <div class="control-row">
-            <button id="reset-camera-btn">Reset Camera</button>
-        </div>
-        <button id="toggle-to-dat-gui">Use dat.GUI</button>
-    </div>
-    <fieldset id="caps-fieldset">
-        <legend>Caps</legend>
-        <button id="add-cap-btn">Add New Cap</button>
-        <div class="control-row">
-            <label for="city-key">City Key</label>
-            <select id="city-key">
-                <option value="none">Select City</option>
-                <option value="houston">Houston, TX</option>
-                <option value="new-york">New York, NY</option>
-                <option value="london">London, UK</option>
-            </select>
-        </div>
-        <div id="caps-container"></div>
-    </fieldset>
-    <template id="cap-template">
-        <div class="cap">
-            <h3 class="cap-title">Cap</h3>
-            <div class="control-row">
-                <label>Latitude: <span class="value-display"></span></label>
-                <input type="range" data-property="lat">
-            </div>
-            <div class="control-row">
-                <label>Longitude: <span class="value-display"></span></label>
-                <input type="range" data-property="lon">
-            </div>
-            <div class="control-row">
-                <label>Height: <span class="value-display"></span></label>
-                <input type="range" data-property="h">
-            </div>
-            <div class="control-row">
-                <label>Size: <span class="value-display"></span></label>
-                <input type="range" data-property="size">
-            </div>
-            <div class="control-row">
-                <label>Lat Scaler</label>
-                <select data-property="xScaler">
-                    <option value="0">0.1x</option>
-                    <option value="1">1x</option>
-                    <option value="2">10x</option>
-                    <option value="3">100x</option>
-                    <option value="4">1000x</option>
-                </select>
-            </div>
-            <div class="control-row">
-                <label>Lon Scaler</label>
-                <select data-property="yScaler">
-                    <option value="0">0.1x</option>
-                    <option value="1">1x</option>
-                    <option value="2">10x</option>
-                    <option value="3">100x</option>
-                    <option value="4">1000x</option>
-                </select>
-            </div>
-            <div class="control-row">
-                <label>Height Scaler</label>
-                <select data-property="hScaler">
-                    <option value="0">0.1x</option>
-                    <option value="1">1x</option>
-                    <option value="2">10x</option>
-                    <option value="3">100x</option>
-                    <option value="4">1000x</option>
-                </select>
-            </div>
-            <div class="control-row">
-                <label>Size Scaler</label>
-                <select data-property="sizeScaler">
-                    <option value="0">Tiny</option>
-                    <option value="1">Small</option>
-                    <option value="2">Medium</option>
-                    <option value="3">Large</option>
-                    <option value="4">Huge</option>
-                </select>
-            </div>
-            <div class="control-row">
-                <label>Direction</label>
-                <select data-property="direction">
-                    <option value="N">N</option>
-                    <option value="NE">NE</option>
-                    <option value="E">E</option>
-                    <option value="SE">SE</option>
-                    <option value="S">S</option>
-                    <option value="SW">SW</option>
-                    <option value="W">W</option>
-                    <option value="NW">NW</option>
-                </select>
-            </div>
-            <div class="control-row">
-                <label>Shape</label>
-                <select data-property="shape">
-                    <option value="sphere-cap">Sphere Cap</option>
-                    <option value="cylinder">Cylinder</option>
-                </select>
-            </div>
-            <button class="remove-cap-btn">Remove Cap</button>
-        </div>
-    </template>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.9/dat.gui.min.js"></script>
 </body>
 </html>
