@@ -221,7 +221,7 @@ function focusCameraOnCap(cap) {
     <div class="control-row-stacked">
         <label>Direction</label>
         <select ata-property="direction">
-            
+
         </select>
     </div>
     <div class="control-row-stacked">
@@ -255,6 +255,200 @@ el.addEventListener('change', (e) => {
     }
     updateAndFocus(cap, index);
 });
+function createCap(cap, index) {
+    if (cap.mesh) earthGroup.remove(cap.mesh);
+
+    const scaledHeight = cap.h * xyScalers[cap.hScaler];
+
+    // Create the main group that will be positioned and oriented
+    const capGroup = new THREE.Group();
+    capGroup.userData.originalPosition = { lat: cap.lat, lon: cap.lon, h: cap.h };
+    cap.mesh = capGroup;
+    earthGroup.add(capGroup);
+document.getElementById('add-cap-btn').addEventListener('click', () => {
+    // ...
+    caps.push({
+        lat: cityCoords.houston.lat, lon: cityCoords.houston.lon, h: 0, size: 0.1, direction: "N",
+        xScaler: 4, yScaler: 4, hScaler: 4, sizeScaler: 2, mesh: null, shape: 'sphere-cap' // Add shape for new caps
+    });
+    // ...
+});
+    const capMat = new THREE.MeshBasicMaterial({
+        color: capColors[index % capColors.length],
+        transparent: true,
+        opacity: 0.9,
+        side: THREE.DoubleSide
+    });
+
+    // --- Shape-specific logic ---
+    if (cap.shape === 'sphere-cap') {
+        const capRadius = 100; // Visual radius of the cap sphere
+        // To make it sit on the surface, we place its CENTER at a height equal to its radius.
+        const positionVector = latLonToVector3(cap.lat, cap.lon, scaledHeight + capRadius);
+        const normalVector = positionVector.clone().normalize();
+        const quaternion = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), normalVector);
+
+        capGroup.position.copy(positionVector);
+        capGroup.quaternion.copy(quaternion);
+
+        const thetaLength = cap.size * sizeScalers[cap.sizeScaler] * Math.PI / 180;
+        const capGeo = new THREE.SphereGeometry(capRadius, 32, 16, 0, Math.PI * 2, 0, thetaLength);
+        const capMeshMain = new THREE.Mesh(capGeo, capMat);
+        // The geometry is centered in the group, which is already lifted by capRadius, so its bottom sits on the surface.
+        capGroup.add(capMeshMain);
+
+        // Add back the direction indicator
+        const directionAngle = directions.indexOf(cap.direction) * (Math.PI / 4);
+        const directionGeo = new THREE.SphereGeometry(capRadius, 32, 16, directionAngle - Math.PI / 8, Math.PI / 4, 0, thetaLength * 1.1);
+        const directionMat = new THREE.MeshBasicMaterial({
+            color: directionColors[cap.direction], transparent: true, opacity: 0.5, side: THREE.DoubleSide
+        });
+        const directionMesh = new THREE.Mesh(directionGeo, directionMat);
+        capGroup.add(directionMesh);
+
+    } else if (cap.shape === 'cylinder') {
+        const capHeight = 250;
+        const capRadius = 40;
+        const positionVector = latLonToVector3(cap.lat, cap.lon, scaledHeight);
+        const normalVector = positionVector.clone().normalize();
+        const quaternion = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), normalVector);
+
+        capGroup.position.copy(positionVector);
+        capGroup.quaternion.copy(quaternion);
+
+        const capGeo = new THREE.CylinderGeometry(capRadius, capRadius, capHeight, 32);
+        const capMeshMain = new THREE.Mesh(capGeo, capMat);
+        // Move the cylinder up by half its height so its base sits on the group's origin (the surface).
+        capMeshMain.position.y = capHeight / 2;
+        capGroup.add(capMeshMain);
+    }
+
+    console.log(`Cap ${index + 1} (${cap.shape}) created at lat: ${cap.lat}, lon: ${cap.lon}`);
+function createCap(cap, index) {
+    if (cap.mesh) earthGroup.remove(cap.mesh);
+
+    const scaledHeight = cap.h * xyScalers[cap.hScaler];
+
+    // Create the main group that will be positioned and oriented
+    const capGroup = new THREE.Group();
+    capGroup.userData.originalPosition = { lat: cap.lat, lon: cap.lon, h: cap.h };
+    cap.mesh = capGroup;
+    earthGroup.add(capGroup);
+
+    const capMat = new THREE.MeshBasicMaterial({
+        color: capColors[index % capColors.length],
+        transparent: true,
+        opacity: 0.9,
+        side: THREE.DoubleSide
+    });
+
+    // --- Shape-specific logic ---
+    if (cap.shape === 'sphere-cap') {
+        const capRadius = 100; // Visual radius of the cap sphere
+        // To make it sit on the surface, we place its CENTER at a height equal to its radius.
+        const positionVector = latLonToVector3(cap.lat, cap.lon, scaledHeight + capRadius);
+        const normalVector = positionVector.clone().normalize();
+        const quaternion = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), normalVector);
+
+        capGroup.position.copy(positionVector);
+        capGroup.quaternion.copy(quaternion);
+
+        const thetaLength = cap.size * sizeScalers[cap.sizeScaler] * Math.PI / 180;
+        const capGeo = new THREE.SphereGeometry(capRadius, 32, 16, 0, Math.PI * 2, 0, thetaLength);
+        const capMeshMain = new THREE.Mesh(capGeo, capMat);
+        // The geometry is centered in the group, which is already lifted by capRadius, so its bottom sits on the surface.
+        capGroup.add(capMeshMain);
+
+        // Add back the direction indicator
+        const directionAngle = directions.indexOf(cap.direction) * (Math.PI / 4);
+        const directionGeo = new THREE.SphereGeometry(capRadius, 32, 16, directionAngle - Math.PI / 8, Math.PI / 4, 0, thetaLength * 1.1);
+        const directionMat = new THREE.MeshBasicMaterial({
+            color: directionColors[cap.direction], transparent: true, opacity: 0.5, side: THREE.DoubleSide
+        });
+        const directionMesh = new THREE.Mesh(directionGeo, directionMat);
+        capGroup.add(directionMesh);
+
+    } else if (cap.shape === 'cylinder') {
+        const capHeight = 250;
+        const capRadius = 40;
+        const positionVector = latLonToVector3(cap.lat, cap.lon, scaledHeight);
+        const normalVector = positionVector.clone().normalize();
+        const quaternion = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), normalVector);
+
+        capGroup.position.copy(positionVector);
+        capGroup.quaternion.copy(quaternion);
+
+        const capGeo = new THREE.CylinderGeometry(capRadius, capRadius, capHeight, 32);
+        const capMeshMain = new THREE.Mesh(capGeo, capMat);
+        // Move the cylinder up by half its height so its base sits on the group's origin (the surface).
+        capMeshMain.position.y = capHeight / 2;
+        capGroup.add(capMeshMain);
+    }
+
+    console.log(`Cap ${index + 1} (${cap.shape}) created at lat: ${cap.lat}, lon: ${cap.lon}`);
+}
+function createCap(cap, index) {
+    if (cap.mesh) earthGroup.remove(cap.mesh);
+
+    const scaledHeight = cap.h * xyScalers[cap.hScaler];
+
+    // Create the main group that will be positioned and oriented
+    const capGroup = new THREE.Group();
+    capGroup.userData.originalPosition = { lat: cap.lat, lon: cap.lon, h: cap.h };
+    cap.mesh = capGroup;
+    earthGroup.add(capGroup);
+
+    const capMat = new THREE.MeshBasicMaterial({
+        color: capColors[index % capColors.length],
+        transparent: true,
+        opacity: 0.9,
+        side: THREE.DoubleSide
+    });
+
+    // --- Shape-specific logic ---
+    if (cap.shape === 'sphere-cap') {
+        const capRadius = 100; // Visual radius of the cap sphere
+        // To make it sit on the surface, we place its CENTER at a height equal to its radius.
+        const positionVector = latLonToVector3(cap.lat, cap.lon, scaledHeight + capRadius);
+        const normalVector = positionVector.clone().normalize();
+        const quaternion = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), normalVector);
+
+        capGroup.position.copy(positionVector);
+        capGroup.quaternion.copy(quaternion);
+
+        const thetaLength = cap.size * sizeScalers[cap.sizeScaler] * Math.PI / 180;
+        const capGeo = new THREE.SphereGeometry(capRadius, 32, 16, 0, Math.PI * 2, 0, thetaLength);
+        const capMeshMain = new THREE.Mesh(capGeo, capMat);
+        // The geometry is centered in the group, which is already lifted by capRadius, so its bottom sits on the surface.
+        capGroup.add(capMeshMain);
+
+        // Add back the direction indicator
+        const directionAngle = directions.indexOf(cap.direction) * (Math.PI / 4);
+        const directionGeo = new THREE.SphereGeometry(capRadius, 32, 16, directionAngle - Math.PI / 8, Math.PI / 4, 0, thetaLength * 1.1);
+        const directionMat = new THREE.MeshBasicMaterial({
+            color: directionColors[cap.direction], transparent: true, opacity: 0.5, side: THREE.DoubleSide
+        });
+        const directionMesh = new THREE.Mesh(directionGeo, directionMat);
+        capGroup.add(directionMesh);
+
+    } else if (cap.shape === 'cylinder') {
+        const capHeight = 250;
+        const capRadius = 40;
+        const positionVector = latLonToVector3(cap.lat, cap.lon, scaledHeight);
+        const normalVector = positionVector.clone().normalize();
+        const quaternion = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), normalVector);
+
+        capGroup.position.copy(positionVector);
+        capGroup.quaternion.copy(quaternion);
+
+        const capGeo = new THREE.CylinderGeometry(capRadius, capRadius, capHeight, 32);
+        const capMeshMain = new THREE.Mesh(capGeo, capMat);
+        // Move the cylinder up by half its height so its base sits on the group's origin (the surface).
+        capMeshMain.position.y = capHeight / 2;
+        capGroup.add(capMeshMain);
+    }
+
+    console.log(`Cap ${index + 1} (${cap.shape}) created at lat: ${cap.lat}, lon: ${cap.lon}`);
 function createCap(cap, index) {
     if (cap.mesh) earthGroup.remove(cap.mesh);
 
