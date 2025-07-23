@@ -217,21 +217,7 @@ function focusCameraOnCap(cap) {
 }
 
 
-<div class="control-grid">
-    <div class="control-row-stacked">
-        <label>Direction</label>
-        <select ata-property="direction">
 
-        </select>
-    </div>
-    <div class="control-row-stacked">
-        <label>Shape</label>
-        <select data-property="shape">
-            <option value="sphere-cap">Sphere Cap</option>
-            <option value="cylinder">Cylinder</option>
-        </select>
-    </div>
-</div>
 
 
 
