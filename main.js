@@ -1,7 +1,6 @@
 // --- Basic Scene Setup ---
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { GUI } from 'https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.9/dat.gui.min.js';
 
 const sphereRadius = 6371; // Earth's radius in km
 let scene, camera, renderer, controls, earthMesh, cloudMesh, raycaster, mouse, cameraHelper;
@@ -53,7 +52,7 @@ sunLight.position.set(-15000, 5000, 10000);
 scene.add(sunLight);
 
 // --- Camera and Controls ---
-// [Addition] Enhanced camera controls for granular inspection
+// [No change] Enhanced camera controls for granular inspection
 controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.05;
@@ -61,12 +60,12 @@ controls.minDistance = sphereRadius + 100;
 const fovInRadians = camera.fov * (Math.PI / 180);
 controls.maxDistance = (16 * sphereRadius) / Math.tan(fovInRadians / 2);
 controls.rotateSpeed = 0.5;
-controls.enablePan = true; // [Alteration] Enable panning for better inspection
+controls.enablePan = true;
 controls.enableZoom = true;
 controls.target.set(0, 0, 0);
 
 // --- Data and State Management ---
-// [Addition] City key data
+// [No change] City key data
 const cityKey = [
     { name: "Houston, TX", lat: 29.76, lon: -95.36 },
     { name: "New York, NY", lat: 40.71, lon: -74.01 },
@@ -121,7 +120,7 @@ function xyToLatLon(x, y) {
     return { lat, lon };
 }
 
-// [Alteration] Initial cap at Houston with stacking support
+// [No change] Initial cap at Houston with stacking support
 const houstonCoords = latLonToXY(29.76, -95.36);
 let caps = [{
     x: houstonCoords.x, y: houstonCoords.y, z: houstonCoords.z, h: 1, size: 2, direction: "NW",
@@ -139,17 +138,17 @@ const directionColors = {
 const xyScalerLabels = { "0.1x": 0, "0.3x": 1, "0.5x": 2, "0.7x": 3, "1x": 4 };
 const sizeScalerLabels = { "Tiny": 0, "Small": 1, "Medium": 2, "Large": 3, "Huge": 4 };
 
-// [Addition] Cap stacking and merging logic
+// [No change] Cap stacking and merging logic
 function getStackedHeight(x, y, z) {
     const existingCaps = caps.filter(cap => 
         Math.abs(cap.x - x) < 1e-3 && 
         Math.abs(cap.y - y) < 1e-3 && 
         Math.abs(cap.z - z) < 1e-3
     );
-    return existingCaps.length * 10; // Stack by incrementing height by 10 units
+    return existingCaps.length * 10;
 }
 
-// [Addition] Check for mergeable caps
+// [No change] Check for mergeable caps
 function checkAndMergeCaps(newCap) {
     const mergeableCaps = caps.filter(cap => 
         cap !== newCap && 
@@ -158,7 +157,7 @@ function checkAndMergeCaps(newCap) {
     );
     if (mergeableCaps.length > 0) {
         const mergedSize = Math.max(newCap.size, ...mergeableCaps.map(cap => cap.size));
-        newCap.size = mergedSize * 1.1; // Slightly larger to cover merged caps
+        newCap.size = mergedSize * 1.1;
         mergeableCaps.forEach(cap => {
             if (cap.mesh) earthGroup.remove(cap.mesh);
             caps.splice(caps.indexOf(cap), 1);
@@ -186,7 +185,7 @@ function focusCameraOnCap(cap) {
     controls.update();
 }
 
-// [Alteration] Create cap with stacking and merging
+// [No change] Create cap with stacking and merging
 function createCap(cap) {
     if (cap.mesh) earthGroup.remove(cap.mesh);
 
@@ -228,7 +227,7 @@ function createCap(cap) {
     cap.mesh = capMesh;
     earthGroup.add(capMesh);
 
-    checkAndMergeCaps(cap); // [Addition] Check for merging after creation
+    checkAndMergeCaps(cap);
 }
 
 // [No change] Update and focus cap
@@ -263,14 +262,14 @@ function onMouseClick(event) {
 document.addEventListener('click', onMouseClick);
 
 // --- UI Panel Initialization and Binding ---
-// [No change] DOM elements
+// [Alteration] Use global dat.GUI instead of module import
 const datGuiContainer = document.getElementById('dat-gui-container');
 const htmlControlsContainer = document.getElementById('html-controls');
 const toggleToDatGuiBtn = document.getElementById('toggle-to-dat-gui');
 const capsContainer = document.getElementById('caps-container');
 const capTemplate = document.getElementById('cap-template');
 
-const gui = new GUI({ autoPlace: false });
+const gui = new dat.GUI({ autoPlace: false }); // [Alteration] Use global 'dat' object
 datGuiContainer.appendChild(gui.domElement);
 datGuiContainer.classList.add('controls');
 gui.addColor(settings, "backgroundColor").onChange(v => scene.background = new THREE.Color(v));
@@ -286,7 +285,7 @@ const capIndexController = gui.add(settings, "selectedCapIndex", 0, Math.max(0, 
     });
 gui.add(settings, 'toggleUI').name('Switch to HTML UI');
 
-// [Addition] City key rendering
+// [No change] City key rendering
 function renderCityKey() {
     const cityKeyContainer = document.getElementById('city-key');
     cityKeyContainer.innerHTML = '';
@@ -310,7 +309,7 @@ function renderCityKey() {
     });
 }
 
-// [Addition] File interface
+// [No change] File interface
 document.getElementById('save-caps-btn').addEventListener('click', () => {
     const data = JSON.stringify(caps.map(cap => ({
         x: cap.x, y: cap.y, z: cap.z, h: cap.h, size: cap.size, direction: cap.direction,
@@ -386,7 +385,7 @@ function updateCapSelectDropdown() {
     selectCapDropdown.value = settings.selectedCapIndex;
 }
 
-// [Alteration] Add new cap at Houston with stacking
+// [No change] Add new cap at Houston with stacking
 document.getElementById('add-cap-btn').addEventListener('click', () => {
     const newCap = {
         x: houstonCoords.x, y: houstonCoords.y, z: houstonCoords.z,
@@ -506,7 +505,7 @@ function animate() {
 scene.background = null;
 resetCameraToDefault();
 renderHtmlCapsUI();
-renderCityKey(); // [Addition] Initialize city key
+renderCityKey();
 caps.forEach(createCap);
 focusCameraOnCap(caps[0]);
 animate();
