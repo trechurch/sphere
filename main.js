@@ -220,7 +220,9 @@ function focusCameraOnCap(cap) {
 <div class="control-grid">
     <div class="control-row-stacked">
         <label>Direction</label>
-        <select data-property="direction"></select>
+        <select ata-property="direction">
+            
+        </select>
     </div>
     <div class="control-row-stacked">
         <label>Shape</label>
