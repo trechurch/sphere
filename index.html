@@ -51,50 +51,55 @@
         </fieldset>
     </div>
 
-    <template id="cap-template">
-        <div class="cap-controls">
-            <h3 class="cap-title"></h3>
-            <div class="control-grid">
-                <div class="control-row">
-                    <label>X: <span class="value-display"></span></label>
-                    <input type="range" data-property="x">
-                </div>
-                <div class="control-row">
-                    <label>Y: <span class="value-display"></span></label>
-                    <input type="range" data-property="y">
-                </div>
-                <div class="control-row">
-                    <label>Height: <span class="value-display"></span></label>
-                    <input type="range" data-property="h">
-                </div>
-                <div class="control-row">
-                    <label>Size: <span class="value-display"></span></label>
-                    <input type="range" data-property="size">
-                </div>
-                <div class="control-row">
-                    <label>X Scaler</label>
-                    <select data-property="xScaler"></select>
-                </div>
-                <div class="control-row">
-                    <label>Y Scaler</label>
-                    <select data-property="yScaler"></select>
-                </div>
-                <div class="control-row">
-                    <label>Height Scaler</label>
-                    <select data-property="hScaler"></select>
-                </div>
-                <div class="control-row">
-                    <label>Size Scaler</label>
-                    <select data-property="sizeScaler"></select>
-                </div>
-                <div class="control-row">
-                    <label>Direction</label>
-                    <select data-property="direction"></select>
-                </div>
+ <!-- [Alteration] Updated cap-template -->
+<template id="cap-template">
+    <div class="cap-controls">
+        <h3 class="cap-title"></h3>
+        <div class="control-grid">
+            <div class="control-row">
+                <label>X: <span class="value-display"></span></label>
+                <input type="range" data-property="x">
             </div>
-            <button class="remove-cap-btn full-width">Remove Cap</button>
+            <div class="control-row">
+                <label>Y: <span class="value-display"></span></label>
+                <input type="range" data-property="y">
+            </div>
+            <div class="control-row">
+                <label>Z: <span class="value-display"></span></label>
+                <input type="range" data-property="z">
+            </div>
+            <div class="control-row">
+                <label>Height: <span class="value-display"></span></label>
+                <input type="range" data-property="h">
+            </div>
+            <div class="control-row">
+                <label>Size: <span class="value-display"></span></label>
+                <input type="range" data-property="size">
+            </div>
+            <div class="control-row">
+                <label>X Scaler</label>
+                <select data-property="xScaler"></select>
+            </div>
+            <div class="control-row">
+                <label>Y Scaler</label>
+                <select data-property="yScaler"></select>
+            </div>
+            <div class="control-row">
+                <label>Height Scaler</label>
+                <select data-property="hScaler"></select>
+            </div>
+            <div class="control-row">
+                <label>Size Scaler</label>
+                <select data-property="sizeScaler"></select>
+            </div>
+            <div class="control-row">
+                <label>Direction</label>
+                <select data-property="direction"></select>
+            </div>
         </div>
-    </template>
+        <button class="remove-cap-btn full-width">Remove Cap</button>
+    </div>
+</template>
 
     <script type="importmap">
         {
