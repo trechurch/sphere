@@ -1,7 +1,7 @@
 // --- Basic Scene Setup ---
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-
+//---sync post
 const sphereRadius = 6371; // Earth's radius in km
 let scene, camera, renderer, controls, earthMesh, cloudMesh, raycaster, mouse, cameraHelper;
 scene = new THREE.Scene();
