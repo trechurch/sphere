@@ -55,7 +55,7 @@ scene.add(moon);
 // Earth setup
 const sphereRadius = 6371;
 const earthGeometry = new THREE.SphereGeometry(sphereRadius, 64, 64);
-const earthTexture = new THREE.TextureLoader().load('./textures/dLHeJw.jpg.jpg');
+const earthTexture = new THREE.TextureLoader().load('./textures/dLHeJw.jpg');
 const earthBumpMap = new THREE.TextureLoader().load('./textures/earthbump.jpg');
 const earthMaterial = new THREE.MeshPhongMaterial({
     map: earthTexture,
