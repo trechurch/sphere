@@ -10,6 +10,9 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 // Initialize core components
 const scene = new THREE.Scene();
+window.addEventListener('DOMContentLoaded', () => {
+  // safely bind events here
+});
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 200000);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
