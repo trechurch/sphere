@@ -3,338 +3,437 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sphere Program</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Three.js Globe with Caps</title>
+    <style>
+        body { margin: 0; overflow: hidden; }
+        canvas { display: block; }
+        .controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            max-width: 320px;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+        }
+        .control-section {
+            margin-bottom: 15px;
+            padding: 10px;
+            border: 1px solid #444;
+            border-radius: 5px;
+        }
+        .control-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 8px 0;
+        }
+        .control-label {
+            flex: 1;
+            padding-right: 10px;
+        }
+        .control-input {
+            flex: 1;
+            text-align: right;
+        }
+        .control-row input[type="range"] {
+            width: 120px;
+        }
+        .control-row select {
+            width: 120px;
+        }
+        .control-row button {
+            padding: 5px 10px;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+        .hidden { display: none; }
+        #dat-gui-container { z-index: 10; }
+        #html-controls { z-index: 10; }
+        #advanced-controls-panel, #color-pallet-panel {
+            position: absolute;
+            top: 60px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 8px;
+            max-width: 320px;
+        }
+        .color-item {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+        }
+        .color-item span {
+            flex: 1;
+        }
+        .color-item input[type="color"] {
+            width: 60px;
+            margin-left: 10px;
+        }
+        #caps-container .cap-ui {
+            border: 1px solid #555;
+            padding: 12px;
+            margin: 12px 0;
+            border-radius: 5px;
+        }
+        .cap-title {
+            font-weight: bold;
+            margin-bottom: 12px;
+        }
+        #city-key label {
+            cursor: pointer;
+        }
+        #city-key label:hover {
+            text-decoration: underline;
+        }
+        .cam-arrows {
+            display: grid;
+            grid-template-columns: repeat(3, 30px);
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+        .tier-controls {
+            margin-top: 15px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+        }
+        .modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 20px;
+            border-radius: 8px;
+            z-index: 20;
+        }
+        @media (max-width: 600px) {
+            .controls, #advanced-controls-panel, #color-pallet-panel, .modal {
+                max-width: 100%;
+                right: 0;
+                top: 0;
+                transform: none;
+            }
+        }
+    </style>
 </head>
 <body>
-    <div id="control-panel" class="controls">
-        <div class="panel-header">
-            <h3>Control Panel Style: Advanced HTML</h3>
-            <div class="toggle-group">
-                <label>Panel Style: </label>
-                <select id="panel-style">
-                    <option value="html">HTML|CSS</option>
-                    <option value="datgui">Dat.GUI</option>
-                </select>
-                <label>Advanced: </label>
-                <input type="checkbox" id="advanced-toggle" checked>
-                <label>Optics: </label>
-                <input type="checkbox" id="optics-toggle">
-                <label>File Management: </label>
-                <input type="checkbox" id="file-toggle">
-                <select id="deployment-type">
-                    <option value="single-band">Single Band</option>
-                    <option value="single-tier">Single Tier</option>
-                    <option value="multi-tier">Multi Tier</option>
-                    <option value="full-system">Full System</option>
-                </select>
+    <div id="dat-gui-container" class="controls hidden"></div>
+    <div id="html-controls" class="controls">
+        <div class="control-section">
+            <h3>General Controls</h3>
+            <div class="control-row">
+                <div class="control-label"><label>Background Color</label></div>
+                <div class="control-input"><input type="color" id="bg-color" value="#000000"></div>
+            </div>
+            <div class="control-row">
+                <div class="control-label"><label>Rotate Sphere</label></div>
+                <div class="control-input"><input type="checkbox" id="rotate-sphere" checked></div>
+            </div>
+            <div class="control-row">
+                <div class="control-label"><label>Preserve Target</label></div>
+                <div class="control-input"><input type="checkbox" id="preserve-target"></div>
+            </div>
+            <div class="control-row">
+                <div class="control-label"><label>Reset Camera</label></div>
+                <div class="control-input"><button id="reset-camera-btn">Reset</button></div>
             </div>
         </div>
-
-        <fieldset id="panel-management">
-            <legend>Panel Management</legend>
+        <div class="control-section">
+            <h3>Optics</h3>
             <div class="control-row">
-                <button id="switch-panel">Switch Panel Style</button>
+                <div class="control-label"><label>Optics</label></div>
+                <div class="control-input"><input type="checkbox" id="optics-toggle"></div>
             </div>
-        </fieldset>
-
-        <fieldset id="optic-management" class="hidden">
-            <legend>Optic Management</legend>
-            <div class="control-row">
-                <label>Rotation</label>
-                <input type="checkbox" id="rotation-toggle" checked>
-            </div>
-            <div class="control-row">
-                <label>Sphere Wire Frame</label>
-                <input type="checkbox" id="wireframe-toggle">
-            </div>
-            <div class="control-row">
-                <label>Moon</label>
-                <input type="checkbox" id="moon-toggle" checked>
-            </div>
-            <div class="control-row">
-                <label>Orbit</label>
-                <input type="checkbox" id="orbit-toggle" checked>
-            </div>
-            <div class="control-row">
-                <label>Stars</label>
-                <input type="checkbox" id="stars-toggle" checked>
-            </div>
-            <div class="control-row">
-                <label>High Contrast</label>
-                <input type="checkbox" id="contrast-toggle">
-            </div>
-            <div class="control-row">
-                <button id="color-pallet-trigger">System Color Pallet</button>
-            </div>
-            <div id="cam-control" class="hidden">
+            <div id="optic-management" class="hidden">
                 <div class="control-row">
-                    <button id="reset-view">Reset View</button>
+                    <div class="control-label"><label>Wireframe</label></div>
+                    <div class="control-input"><input type="checkbox" id="wireframe-toggle"></div>
                 </div>
                 <div class="control-row">
-                    <label>Maintain Cap Focus</label>
-                    <input type="checkbox" id="maintain-focus">
+                    <div class="control-label"><label>Moon</label></div>
+                    <div class="control-input"><input type="checkbox" id="moon-toggle" checked></div>
                 </div>
                 <div class="control-row">
-                    <label>Orthographic Focus</label>
-                    <input type="checkbox" id="ortho-focus">
+                    <div class="control-label"><label>Orbit</label></div>
+                    <div class="control-input"><input type="checkbox" id="orbit-toggle"></div>
                 </div>
                 <div class="control-row">
-                    <label>Binary Focus</label>
-                    <input type="checkbox" id="binary-focus">
-                </div>
-                <div class="control-row cam-arrows">
-                    <button id="up">↑</button><button id="down">↓</button>
-                    <button id="left">←</button><button id="right">→</button>
-                    <button id="up-left">↖</button><button id="up-right">↗</button>
-                    <button id="down-left">↙</button><button id="down-right">↘</button>
-                </div>
-                <div class="control-row cam-arrows">
-                    <button id="strafe-left">←</button><button id="strafe-right">→</button>
-                    <button id="strafe-up">↑</button><button id="strafe-down">↓</button>
+                    <div class="control-label"><label>Stars</label></div>
+                    <div class="control-input"><input type="checkbox" id="stars-toggle" checked></div>
                 </div>
                 <div class="control-row">
-                    <label>Macro Zoom</label><input type="range" id="macro-zoom" min="0" max="100" value="50">
-                    <label>Micro Zoom</label><input type="range" id="micro-zoom" min="0" max="100" value="50">
-                    <label>Basic Zoom</label><input type="range" id="basic-zoom" min="0" max="100" value="50">
+                    <div class="control-label"><label>Contrast</label></div>
+                    <div class="control-input"><input type="checkbox" id="contrast-toggle"></div>
                 </div>
                 <div class="control-row">
-                    <label>Resolution</label><input type="range" id="resolution" min="1" max="10" value="5">
+                    <div class="control-label"><label>Deploy View</label></div>
+                    <div class="control-input"><input type="checkbox" id="deploy-view"></div>
                 </div>
+            </div>
+        </div>
+        <div class="control-section">
+            <h3>File Management</h3>
+            <div class="control-row">
+                <div class="control-label"><label>File Management</label></div>
+                <div class="control-input"><input type="checkbox" id="file-toggle"></div>
+            </div>
+            <div id="file-management" class="hidden">
+                <div class="control-row">
+                    <div class="control-label"><label>Save Caps</label></div>
+                    <div class="control-input"><button id="save-caps-btn">Save</button></div>
+                </div>
+                <div class="control-row">
+                    <div class="control-label"><label>Load Caps</label></div>
+                    <div class="control-input"><input type="file" id="load-caps-input" accept=".json"></div>
+                </div>
+            </div>
+        </div>
+        <div class="control-section">
+            <h3>Panels</h3>
+            <div class="control-row">
+                <div class="control-label"><label>Advanced Controls</label></div>
+                <div class="control-input"><button id="advanced-controls-trigger">Toggle</button></div>
             </div>
             <div class="control-row">
-                <label>Deployment View</label>
-                <input type="checkbox" id="deploy-view">
-                <div id="color-key" class="hidden">
-                    X:red, -X:orange, Y:blue, -Y:yellow, Z:purple, -Z:green
-                </div>
+                <div class="control-label"><label>Color Pallet</label></div>
+                <div class="control-input"><button id="color-pallet-trigger">Toggle</button></div>
             </div>
-        </fieldset>
-
-        <fieldset id="file-management" class="hidden">
-            <legend>File Management</legend>
             <div class="control-row">
-                <input type="file" id="load-file" accept=".json">
-                <button id="save-file">Save File</button>
+                <div class="control-label"><label>Switch to dat.GUI</label></div>
+                <div class="control-input"><button id="toggle-to-dat-gui">Switch</button></div>
             </div>
-            <div id="metrics-display"></div>
-        </fieldset>
-
-        <fieldset id="cap-management" class="hidden">
-            <legend>Cap Management</legend>
-            <div id="single-band-controls" class="hidden">
-                <div class="control-row">
-                    <button id="new-cap">New Cap</button>
-                </div>
-                <div class="control-row">
-                    <button id="delete-cap">Delete Cap</button>
-                </div>
-                <div class="control-row">
-                    <label>Clone Cap</label>
-                    <select id="clone-from"></select>
-                    <select id="clone-to">
-                        <option value="new">Create New</option>
+        </div>
+        <div class="control-section">
+            <h3>City Key</h3>
+            <div class="control-row">
+                <div class="control-label"><label>City Key</label></div>
+                <div class="control-input"><div id="city-key"></div></div>
+            </div>
+        </div>
+        <div class="control-section">
+            <h3>Deployment Type</h3>
+            <div class="control-row">
+                <div class="control-label"><label>Deployment Type</label></div>
+                <div class="control-input">
+                    <select id="deployment-type">
+                        <option value="single-band">Single Band</option>
+                        <option value="single-tier">Single Tier</option>
+                        <option value="multi-tier">Multi Tier</option>
                     </select>
                 </div>
+            </div>
+            <div class="tier-controls" id="single-band-controls">
                 <div class="control-row">
-                    <label>Select Primary Cap</label>
-                    <select id="primary-cap"></select>
+                    <div class="control-label"><label>Band Intensity</label></div>
+                    <div class="control-input"><input type="range" id="single-band-slider" min="0" max="100" value="50"></div>
+                </div>
+            </div>
+            <div class="tier-controls hidden" id="single-tier-controls">
+                <div class="control-row">
+                    <div class="control-label"><label>Tier Height</label></div>
+                    <div class="control-input"><input type="range" id="single-tier-slider" min="0" max="100" value="50"></div>
                 </div>
                 <div class="control-row">
-                    <label>Select Secondary Cap</label>
-                    <select id="secondary-cap"></select>
+                    <div class="control-label"><label>Tier Density</label></div>
+                    <div class="control-input"><input type="range" id="single-tier-density" min="1" max="10" value="5"></div>
                 </div>
-                <div class="cap-pair">
-                    <div class="cap-interface">
-                        <h4>Primary Cap</h4>
-                        <div class="control-row">
-                            <label>Latitude (°)</label>
-                            <input type="number" id="primary-lat" step="0.01" min="-90" max="90">
-                            <button id="primary-lat-dec">-</button>
-                            <button id="primary-lat-inc">+</button>
-                        </div>
-                        <div class="control-row">
-                            <label>Latitude Scaler</label>
-                            <input type="range" id="primary-lat-scaler" min="1" max="10" value="1">
-                        </div>
-                        <div class="control-row">
-                            <label>Longitude (°)</label>
-                            <input type="number" id="primary-lon" step="0.01" min="-180" max="180">
-                            <button id="primary-lon-dec">-</button>
-                            <button id="primary-lon-inc">+</button>
-                        </div>
-                        <div class="control-row">
-                            <label>Longitude Scaler</label>
-                            <input type="range" id="primary-lon-scaler" min="1" max="10" value="1">
-                        </div>
-                        <div class="control-row">
-                            <label>Height (km)</label>
-                            <input type="number" id="primary-height" step="1" min="0" max="2000">
-                            <button id="primary-height-dec">-</button>
-                            <button id="primary-height-inc">+</button>
-                        </div>
-                        <div class="control-row">
-                            <label>Height Scaler</label>
-                            <input type="range" id="primary-height-scaler" min="1" max="10" value="1">
-                        </div>
-                        <div class="control-row">
-                            <label>Size (km)</label>
-                            <input type="number" id="primary-size" step="10" min="10" max="5000">
-                            <button id="primary-size-dec">-</button>
-                            <button id="primary-size-inc">+</button>
-                        </div>
-                        <div class="control-row">
-                            <label>Size Scaler</label>
-                            <select id="primary-size-scaler">
-                                <option value="neighborhood">Neighborhood</option>
-                                <option value="town">Town</option>
-                                <option value="city">Larger City</option>
-                                <option value="state">State</option>
-                                <option value="continent">Continent</option>
-                                <option value="planet">Planet</option>
-                            </select>
+            </div>
+            <div class="tier-controls hidden" id="multi-tier-controls">
+                <div class="control-row">
+                    <div class="control-label"><label>Multi Tier Levels</label></div>
+                    <div class="control-input"><input type="range" id="multi-tier-slider" min="1" max="5" value="3"></div>
+                </div>
+                <div class="control-row">
+                    <div class="control-label"><label>Tier Spacing</label></div>
+                    <div class="control-input"><input type="range" id="multi-tier-spacing" min="10" max="100" value="50"></div>
+                </div>
+            </div>
+        </div>
+        <div class="control-section">
+            <fieldset>
+                <legend>Caps</legend>
+                <div class="control-row">
+                    <div class="control-label"><label>Pick Cap Location</label></div>
+                    <div class="control-input">
+                        <div>
+                            <input type="checkbox" id="pick-cap">
+                            <select id="select-cap"></select>
                         </div>
                     </div>
-                    <div class="cap-interface">
-                        <h4>Secondary Cap</h4>
-                        <div class="control-row">
-                            <label>Latitude (°)</label>
-                            <input type="number" id="secondary-lat" step="0.01" min="-90" max="90">
-                            <button id="secondary-lat-dec">-</button>
-                            <button id="secondary-lat-inc">+</button>
-                        </div>
-                        <div class="control-row">
-                            <label>Latitude Scaler</label>
-                            <input type="range" id="secondary-lat-scaler" min="1" max="10" value="1">
-                        </div>
-                        <div class="control-row">
-                            <label>Longitude (°)</label>
-                            <input type="number" id="secondary-lon" step="0.01" min="-180" max="180">
-                            <button id="secondary-lon-dec">-</button>
-                            <button id="secondary-lon-inc">+</button>
-                        </div>
-                        <div class="control-row">
-                            <label>Longitude Scaler</label>
-                            <input type="range" id="secondary-lon-scaler" min="1" max="10" value="1">
-                        </div>
-                        <div class="control-row">
-                            <label>Height (km)</label>
-                            <input type="number" id="secondary-height" step="1" min="0" max="2000">
-                            <button id="secondary-height-dec">-</button>
-                            <button id="secondary-height-inc">+</button>
-                        </div>
-                        <div class="control-row">
-                            <label>Height Scaler</label>
-                            <input type="range" id="secondary-height-scaler" min="1" max="10" value="1">
-                        </div>
-                        <div class="control-row">
-                            <label>Size (km)</label>
-                            <input type="number" id="secondary-size" step="10" min="10" max="5000">
-                            <button id="secondary-size-dec">-</button>
-                            <button id="secondary-size-inc">+</button>
-                        </div>
-                        <div class="control-row">
-                            <label>Size Scaler</label>
-                            <select id="secondary-size-scaler">
-                                <option value="neighborhood">Neighborhood</option>
-                                <option value="town">Town</option>
-                                <option value="city">Larger City</option>
-                                <option value="state">State</option>
-                                <option value="continent">Continent</option>
-                                <option value="planet">Planet</option>
-                            </select>
-                        </div>
+                </div>
+                <div class="control-row">
+                    <div class="control-label"><label>Add Cap</label></div>
+                    <div class="control-input"><button id="add-cap-btn">Add</button></div>
+                </div>
+                <div id="caps-container"></div>
+            </fieldset>
+        </div>
+        <div class="control-section">
+            <h3>Camera Controls</h3>
+            <div class="control-row">
+                <div class="control-label"><label>Navigation</label></div>
+                <div class="control-input">
+                    <div class="cam-arrows">
+                        <button id="strafe-up-left">↖</button>
+                        <button id="strafe-up">↑</button>
+                        <button id="strafe-up-right">↗</button>
+                        <button id="strafe-left">←</button>
+                        <button id="strafe-right">→</button>
+                        <button id="strafe-down-left">↙</button>
+                        <button id="strafe-down">↓</button>
+                        <button id="strafe-down-right">↘</button>
                     </div>
                 </div>
             </div>
-            <div id="single-tier-controls" class="hidden">
-                <div class="control-row">
-                    <button id="select-location">Select Location</button>
-                </div>
-                <div class="control-row">
-                    <label>Latitude (°)</label>
-                    <input type="number" id="tier-lat" step="0.01" min="-90" max="90">
-                    <button id="tier-lat-dec">-</button>
-                    <button id="tier-lat-inc">+</button>
-                </div>
-                <div class="control-row">
-                    <label>Longitude (°)</label>
-                    <input type="number" id="tier-lon" step="0.01" min="-180" max="180">
-                    <button id="tier-lon-dec">-</button>
-                    <button id="tier-lon-inc">+</button>
-                </div>
-                <div class="control-row">
-                    <label>Tier Speed Range</label>
-                    <select id="tier-speed"></select>
-                </div>
-                <div class="control-row">
-                    <label>Tier Altitude Range</label>
-                    <select id="tier-altitude"></select>
-                </div>
-                <div class="control-row">
-                    <label>Tier Directional Scaling</label>
-                    <select id="tier-scaling"></select>
-                </div>
-                <div class="control-row">
-                    <label>Tier Buffering/Emergency</label>
-                    <select id="tier-buffering"></select>
-                </div>
-                <div id="tier-modules"></div>
+            <div class="control-row">
+                <div class="control-label"><label>Macro Zoom</label></div>
+                <div class="control-input"><input type="range" id="macro-zoom" min="1" max="100" value="50"></div>
             </div>
-            <div id="multi-tier-controls" class="hidden">
-                <div class="control-row">
-                    <button id="select-location-multi">Select Location</button>
-                </div>
-                <div class="control-row">
-                    <label>Latitude (°)</label>
-                    <input type="number" id="multi-tier-lat" step="0.01" min="-90" max="90">
-                    <button id="multi-tier-lat-dec">-</button>
-                    <button id="multi-tier-lat-inc">+</button>
-                </div>
-                <div class="control-row">
-                    <label>Longitude (°)</label>
-                    <input type="number" id="multi-tier-lon" step="0.01" min="-180" max="180">
-                    <button id="multi-tier-lon-dec">-</button>
-                    <button id="multi-tier-lon-inc">+</button>
-                </div>
-                <div class="control-row">
-                    <button id="add-tier">Add Tier</button>
-                </div>
-                <div id="multi-tier-modules"></div>
+            <div class="control-row">
+                <div class="control-label"><label>Micro Zoom</label></div>
+                <div class="control-input"><input type="range" id="micro-zoom" min="1" max="100" value="50"></div>
             </div>
-        </fieldset>
-
-        <div id="color-pallet-panel" class="popup hidden">
-            <div class="popup-content">
-                <h4>Color Pallet</h4>
-                <div class="color-boxes">
-                    <div class="color-set">
-                        <h5>Newer</h5>
-                        <div id="newer-colors"></div>
-                    </div>
-                    <div class="color-set">
-                        <h5>Older</h5>
-                        <div id="older-colors"></div>
-                    </div>
-                </div>
-                <button id="revert-colors">Revert</button>
-                <button id="randomize-colors">Randomize</button>
-                <div id="color-chooser"></div>
-                <button id="save-colors">Save</button>
-                <button id="discard-colors">Discard</button>
+            <div class="control-row">
+                <div class="control-label"><label>Basic Zoom</label></div>
+                <div class="control-input"><input type="range" id="basic-zoom" min="1" max="100" value="50"></div>
+            </div>
+            <div class="control-row">
+                <div class="control-label"><label>Resolution</label></div>
+                <div class="control-input"><input type="range" id="resolution" min="1" max="10" value="5"></div>
+            </div>
+            <div class="control-row">
+                <div class="control-label"><label>Maintain Focus</label></div>
+                <div class="control-input"><input type="checkbox" id="maintain-focus"></div>
+            </div>
+            <div class="control-row">
+                <div class="control-label"><label>Ortho Focus</label></div>
+                <div class="control-input"><input type="checkbox" id="ortho-focus"></div>
+            </div>
+            <div class="control-row">
+                <div class="control-label"><label>Binary Focus</label></div>
+                <div class="control-input"><input type="checkbox" id="binary-focus"></div>
+            </div>
+            <div class="control-row">
+                <div class="control-label"><label>Reset View</label></div>
+                <div class="control-input"><button id="reset-view">Reset</button></div>
             </div>
         </div>
     </div>
-
-    <script type="importmap">
-        {
-            "imports": {
-                "three": "https://unpkg.com/three@0.156.0/build/three.module.js",
-                "three/addons/": "https://unpkg.com/three@0.156.0/examples/jsm/"
-            }
-        }
-    </script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.9/dat.gui.min.js"></script>
+    <div id="advanced-controls-panel" class="modal hidden">
+        <div class="control-section">
+            <h3>Advanced Settings</h3>
+            <div class="control-row">
+                <div class="control-label"><label>Enable Validation</label></div>
+                <div class="control-input"><input type="checkbox" id="validation-toggle" checked></div>
+            </div>
+            <div class="control-row">
+                <div class="control-label"><label>Enable Debug Logging</label></div>
+                <div class="control-input"><input type="checkbox" id="logging-toggle" checked></div>
+            </div>
+        </div>
+    </div>
+    <div id="color-pallet-panel" class="modal hidden">
+        <div class="control-section">
+            <h3>Color Pallet</h3>
+            <div class="control-row">
+                <div class="control-label"><label>Controls</label></div>
+                <div class="control-input">
+                    <button id="save-colors">Save</button>
+                    <button id="discard-colors">Discard</button>
+                    <button id="revert-colors">Revert</button>
+                    <button id="randomize-colors">Randomize</button>
+                </div>
+            </div>
+            <div id="newer-colors">
+                <div class="color-item">
+                    <span>Earth</span>
+                    <div><input type="color" class="newer" value="#ffffff"></div>
+                    <div><input type="color" class="older" value="#ffffff"></div>
+                </div>
+                <div class="color-item">
+                    <span>Caps</span>
+                    <div><input type="color" class="newer" value="#ffffff"></div>
+                    <div><input type="color" class="older" value="#ffffff"></div>
+                </div>
+                <div class="color-item">
+                    <span>Stars</span>
+                    <div><input type="color" class="newer" value="#ffffff"></div>
+                    <div><input type="color" class="older" value="#ffffff"></div>
+                </div>
+                <div class="color-item">
+                    <span>Moon</span>
+                    <div><input type="color" class="newer" value="#ffffff"></div>
+                    <div><input type="color" class="older" value="#ffffff"></div>
+                </div>
+            </div>
+            <div id="older-colors" class="hidden"></div>
+        </div>
+    </div>
+    <template id="cap-template">
+        <div class="cap-ui">
+            <div class="cap-title"></div>
+            <div class="control-section">
+                <h4>Position</h4>
+                <div class="control-row">
+                    <div class="control-label"><label>X <span class="value-display"></span></label></div>
+                    <div class="control-input"><input type="range" data-property="x"></div>
+                </div>
+                <div class="control-row">
+                    <div class="control-label"><label>Y <span class="value-display"></span></label></div>
+                    <div class="control-input"><input type="range" data-property="y"></div>
+                </div>
+                <div class="control-row">
+                    <div class="control-label"><label>Height <span class="value-display"></span></label></div>
+                    <div class="control-input"><input type="range" data-property="h"></div>
+                </div>
+            </div>
+            <div class="control-section">
+                <h4>Scale</h4>
+                <div class="control-row">
+                    <div class="control-label"><label>Size <span class="value-display"></span></label></div>
+                    <div class="control-input"><input type="range" data-property="size"></div>
+                </div>
+                <div class="control-row">
+                    <div class="control-label"><label>X Scaler</label></div>
+                    <div class="control-input"><select data-property="xScaler"></select></div>
+                </div>
+                <div class="control-row">
+                    <div class="control-label"><label>Y Scaler</label></div>
+                    <div class="control-input"><select data-property="yScaler"></select></div>
+                </div>
+                <div class="control-row">
+                    <div class="control-label"><label>Height Scaler</label></div>
+                    <div class="control-input"><select data-property="hScaler"></select></div>
+                </div>
+                <div class="control-row">
+                    <div class="control-label"><label>Size Scaler</label></div>
+                    <div class="control-input"><select data-property="sizeScaler"></select></div>
+                </div>
+            </div>
+            <div class="control-section">
+                <h4>Direction</h4>
+                <div class="control-row">
+                    <div class="control-label"><label>Direction</label></div>
+                    <div class="control-input"><select data-property="direction"></select></div>
+                </div>
+            </div>
+            <div class="control-section">
+                <div class="control-row">
+                    <div class="control-label"><label>Remove Cap</label></div>
+                    <div class="control-input"><button class="remove-cap-btn">Remove</button></div>
+                </div>
+            </div>
+        </div>
+    </template>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.7/dat.gui.min.js"></script>
     <script type="module" src="main.js"></script>
 </body>
 </html>
