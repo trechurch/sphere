@@ -55,8 +55,8 @@ scene.add(moon);
 // Earth setup
 const sphereRadius = 6371;
 const earthGeometry = new THREE.SphereGeometry(sphereRadius, 64, 64);
-const earthTexture = new THREE.TextureLoader().load('./textures/earth-4k.jpg');
-const earthBumpMap = new THREE.TextureLoader().load('./textures/earth-bump-4k.jpg');
+const earthTexture = new THREE.TextureLoader().load('./textures/dLHeJw.jpg.jpg');
+const earthBumpMap = new THREE.TextureLoader().load('./textures/earthbump.jpg');
 const earthMaterial = new THREE.MeshPhongMaterial({
     map: earthTexture,
     bumpMap: earthBumpMap,
@@ -68,7 +68,7 @@ earthMesh.position.set(0, 0, 0);
 
 // Cloud layer
 const cloudGeometry = new THREE.SphereGeometry(sphereRadius + 15, 64, 64);
-const cloudTexture = new THREE.TextureLoader().load('./textures/earth-clouds-4k.png');
+const cloudTexture = new THREE.TextureLoader().load('./textures/earthCloud.png');
 const cloudMaterial = new THREE.MeshPhongMaterial({
     map: cloudTexture,
     transparent: true,
@@ -111,6 +111,7 @@ const cityKey = [
 
 // Settings
 const settings = {
+    // ... (existing settings)
     backgroundColor: "#000000",
     rotateSphere: true,
     preserveTarget: false,
@@ -119,13 +120,22 @@ const settings = {
     useOrthographic: false,
     enableValidation: true,
     enableDebugLogging: true,
-    rotateSpeed: 0.5, // Added for advanced GUI
-    dampingFactor: 0.05, // Added for advanced GUI
-    zoomSpeed: 1.0, // Added for advanced GUI
+    rotateSpeed: 0.5,
+    dampingFactor: 0.05,
+    zoomSpeed: 1.0,
     resetCamera: () => resetCameraToDefault(),
     toggleUI: () => toggleControlPanel(),
     toggleCamera: () => { settings.useOrthographic = !settings.useOrthographic; updateCamera(); },
     toggleAdvancedControls: () => toggleAdvancedControls()
+};
+
+// Default settings for tiered deployments
+const tierSettings = {
+    singleBandIntensity: 50,
+    singleTierHeight: 50,
+    singleTierDensity: 5,
+    multiTierLevels: 3,
+    multiTierSpacing: 50
 };
 
 // Coordinate conversions
@@ -167,14 +177,16 @@ function getStackedHeight(x, y, z) {
     const existingCaps = capArray.filter(cap =>
         Math.abs(cap.x - x) < 1e-3 && Math.abs(cap.y - y) < 1e-3 && Math.abs(cap.z - z) < 1e-3
     );
-    return existingCaps.length * 10;
+    return existingCaps.length * 10 * (deploymentType === 'single-tier' ? tierSettings.singleTierHeight / 50 : 1);
 }
 
+// Update checkAndMergeCaps for tier density
 function checkAndMergeCaps(newCap) {
     if (settings.enableDebugLogging) console.log('Checking merge for cap:', newCap);
+    const mergeThreshold = deploymentType === 'single-tier' ? 500 * tierSettings.singleTierDensity : 500;
     const mergeableCaps = capArray.filter(cap =>
         cap !== newCap && cap.h === newCap.h &&
-        Math.abs(cap.x - newCap.x) < 500 * cap.size * sizeScalers[cap.sizeScaler]
+        Math.abs(cap.x - newCap.x) < mergeThreshold * cap.size * sizeScalers[cap.sizeScaler]
     );
     if (mergeableCaps.length > 0) {
         const mergedSize = Math.max(newCap.size, ...mergeableCaps.map(cap => cap.size));
@@ -187,27 +199,32 @@ function checkAndMergeCaps(newCap) {
     }
 }
 
+
 // Create cap
 function createCap(cap) {
     if (settings.enableDebugLogging) console.log('Creating cap:', cap);
     if (cap.mesh) earthGroup.remove(cap.mesh);
     const { lat, lon } = xyToLatLon(cap.x * xyScalers[cap.xScaler], cap.y * xyScalers[cap.yScaler]);
     const positionVector = new THREE.Vector3(...Object.values(latLonToXY(lat, lon))).normalize();
-    const scaledHeight = cap.h * xyScalers[cap.hScaler] + getStackedHeight(cap.x, cap.y, cap.z);
+    let scaledHeight = cap.h * xyScalers[cap.hScaler] + getStackedHeight(cap.x, cap.y, cap.z);
+    if (deploymentType === 'multi-tier') {
+        scaledHeight += tierSettings.multiTierSpacing * (cap.tierLevel || 0);
+    }
     const upVector = new THREE.Vector3(0, 1, 0);
     const quaternion = new THREE.Quaternion().setFromUnitVectors(upVector, positionVector);
     const capMesh = new THREE.Group();
     capMesh.position.copy(positionVector.multiplyScalar(sphereRadius + scaledHeight));
-    const capGeo = new THREE.SphereGeometry(500 * cap.size * sizeScalers[cap.sizeScaler], 32, 16, 0, Math.PI * 2, 0, Math.PI / 2);
+    const capSize = deploymentType === 'multi-tier' ? cap.size * (tierSettings.multiTierLevels / 3) : cap.size;
+    const capGeo = new THREE.SphereGeometry(500 * capSize * sizeScalers[cap.sizeScaler], 32, 16, 0, Math.PI * 2, 0, Math.PI / 2);
     const capMat = new THREE.MeshBasicMaterial({
         color: directionColors[cap.direction] || 0xff0000,
         transparent: true,
-        opacity: 0.9,
+        opacity: deploymentType === 'single-band' ? tierSettings.singleBandIntensity / 100 : 0.9,
         side: THREE.DoubleSide
     });
     const capMeshMain = new THREE.Mesh(capGeo, capMat);
     const directionAngle = directions.indexOf(cap.direction) * (Math.PI / 4);
-    const directionGeo = new THREE.SphereGeometry(500 * cap.size * sizeScalers[cap.sizeScaler], 32, 16, directionAngle - Math.PI / 8, Math.PI / 4, 0, Math.PI / 2);
+    const directionGeo = new THREE.SphereGeometry(500 * capSize * sizeScalers[cap.sizeScaler], 32, 16, directionAngle - Math.PI / 8, Math.PI / 4, 0, Math.PI / 2);
     const directionMat = new THREE.MeshBasicMaterial({
         color: directionColors[cap.direction] || 0xff0000,
         transparent: true,
@@ -217,7 +234,7 @@ function createCap(cap) {
     const directionMesh = new THREE.Mesh(directionGeo, directionMat);
     capMesh.add(capMeshMain, directionMesh);
     capMesh.quaternion.copy(quaternion);
-    capMesh.userData = { size: cap.size * sizeScalers[cap.sizeScaler], originalPosition: { x: cap.x, y: cap.y, h: cap.h, z: cap.z } };
+    capMesh.userData = { size: capSize * sizeScalers[cap.sizeScaler], originalPosition: { x: cap.x, y: cap.y, h: cap.h, z: cap.z } };
     cap.mesh = capMesh;
     earthGroup.add(capMesh);
     checkAndMergeCaps(cap);
@@ -287,7 +304,10 @@ function updateCapView() {
     capArray.forEach(cap => {
         const { lat, lon } = xyToLatLon(cap.x * xyScalers[cap.xScaler], cap.y * xyScalers[cap.yScaler]);
         const positionVector = new THREE.Vector3(...Object.values(latLonToXY(lat, lon))).normalize();
-        const scaledHeight = cap.h * xyScalers[cap.hScaler] + getStackedHeight(cap.x, cap.y, cap.z);
+        let scaledHeight = cap.h * xyScalers[cap.hScaler] + getStackedHeight(cap.x, cap.y, cap.z);
+        if (deploymentType === 'multi-tier') {
+            scaledHeight += tierSettings.multiTierSpacing * (cap.tierLevel || 0);
+        }
         const capMesh = new THREE.Group();
         capMesh.position.copy(positionVector.multiplyScalar(sphereRadius + scaledHeight));
         if (deployView) {
@@ -304,16 +324,17 @@ function updateCapView() {
             geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
             capMesh.add(new THREE.Mesh(geo, mat));
         } else {
-            const capGeo = new THREE.SphereGeometry(500 * cap.size * sizeScalers[cap.sizeScaler], 32, 16, 0, Math.PI * 2, 0, Math.PI / 2);
+            const capSize = deploymentType === 'multi-tier' ? cap.size * (tierSettings.multiTierLevels / 3) : cap.size;
+            const capGeo = new THREE.SphereGeometry(500 * capSize * sizeScalers[cap.sizeScaler], 32, 16, 0, Math.PI * 2, 0, Math.PI / 2);
             const capMat = new THREE.MeshBasicMaterial({
                 color: directionColors[cap.direction] || 0xff0000,
                 transparent: true,
-                opacity: 0.9,
+                opacity: deploymentType === 'single-band' ? tierSettings.singleBandIntensity / 100 : 0.9,
                 side: THREE.DoubleSide
             });
             const capMeshMain = new THREE.Mesh(capGeo, capMat);
             const directionAngle = directions.indexOf(cap.direction) * (Math.PI / 4);
-            const directionGeo = new THREE.SphereGeometry(500 * cap.size * sizeScalers[cap.sizeScaler], 32, 16, directionAngle - Math.PI / 8, Math.PI / 4, 0, Math.PI / 2);
+            const directionGeo = new THREE.SphereGeometry(500 * capSize * sizeScalers[cap.sizeScaler], 32, 16, directionAngle - Math.PI / 8, Math.PI / 4, 0, Math.PI / 2);
             const directionMat = new THREE.MeshBasicMaterial({
                 color: directionColors[cap.direction] || 0xff0000,
                 transparent: true,
@@ -328,7 +349,7 @@ function updateCapView() {
         cap.mesh = capMesh;
         earthGroup.add(capMesh);
     });
-    document.getElementById('color-key').classList.toggle('hidden', !deployView);
+    document.getElementById('color-pallet-panel').classList.toggle('hidden', !deployView);
 }
 
 // Mouse click for cap placement
@@ -346,6 +367,7 @@ function onMouseClick(event) {
             selectedCap.y = point.y;
             selectedCap.z = point.z;
             selectedCap.h = getStackedHeight(point.x, point.y, point.z);
+            selectedCap.tierLevel = 0; // Initialize tier level for multi-tier
             if (settings.enableDebugLogging) console.log('Updated cap position:', selectedCap);
             updateAndFocus(selectedCap);
             renderHtmlCapsUI();
@@ -516,6 +538,7 @@ selectCapDropdown.addEventListener('change', (e) => {
 });
 
 function updateCapSelectDropdown() {
+    const selectCapDropdown = document.getElementById('select-cap');
     selectCapDropdown.innerHTML = '';
     capArray.forEach((_, index) => {
         const option = new Option(`Cap ${index + 1}`, index);
@@ -528,7 +551,8 @@ document.getElementById('add-cap-btn').addEventListener('click', () => {
     const newCap = {
         x: houstonCoords.x, y: houstonCoords.y, z: houstonCoords.z,
         h: getStackedHeight(houstonCoords.x, houstonCoords.y, houstonCoords.z),
-        size: 2, direction: "NW", xScaler: 4, yScaler: 4, hScaler: 0, sizeScaler: 2, mesh: null
+        size: 2, direction: "NW", xScaler: 4, yScaler: 4, hScaler: 0, sizeScaler: 2, mesh: null,
+        tierLevel: 0 // Initialize for multi-tier
     };
     capArray.push(newCap);
     settings.selectedCapIndex = capArray.length - 1;
@@ -540,7 +564,15 @@ document.getElementById('add-cap-btn').addEventListener('click', () => {
 });
 
 function renderHtmlCapsUI() {
+    const capsContainer = document.getElementById('caps-container');
+    const capTemplate = document.getElementById('cap-template');
+    const selectCapDropdown = document.getElementById('select-cap');
+    if (!capsContainer || !capTemplate || !selectCapDropdown) {
+        console.error('Required DOM elements missing:', { capsContainer, capTemplate, selectCapDropdown });
+        return;
+    }
     capsContainer.innerHTML = '';
+    selectCapDropdown.innerHTML = '';
     capArray.forEach((cap, index) => {
         const capUi = capTemplate.content.cloneNode(true).firstElementChild;
         capUi.querySelector('.cap-title').textContent = `Cap ${index + 1}`;
@@ -558,15 +590,19 @@ function renderHtmlCapsUI() {
         ];
         controlsMap.forEach(({prop, type, min, max, step, options}) => {
             const el = capUi.querySelector(`[data-property="${prop}"]`);
+            if (!el) {
+                console.warn(`Element for ${prop} not found in cap template`);
+                return;
+            }
             if (type === 'range') {
                 el.min = min; el.max = max; el.step = step; el.value = cap[prop];
-                const valueDisplay = el.previousElementSibling.querySelector('.value-display');
-                if(valueDisplay) valueDisplay.textContent = el.value;
+                const valueDisplay = el.previousElementSibling ? el.previousElementSibling.querySelector('.value-display') : null;
+                if (valueDisplay) valueDisplay.textContent = el.value;
                 el.addEventListener('input', (e) => {
                     const value = parseFloat(e.target.value);
                     cap[prop] = settings.enableValidation ? Math.max(min, Math.min(max, value)) : value;
                     e.target.value = cap[prop];
-                    if(valueDisplay) valueDisplay.textContent = e.target.value;
+                    if (valueDisplay) valueDisplay.textContent = e.target.value;
                     updateAndFocus(cap);
                     if (settings.enableDebugLogging) console.log(`Updated cap ${index + 1} ${prop}:`, cap[prop]);
                 });
@@ -605,6 +641,7 @@ function renderHtmlCapsUI() {
     });
     updateCapSelectDropdown();
 }
+
 
 function toggleControlPanel() {
     datGuiContainer.classList.toggle('hidden');
@@ -719,6 +756,29 @@ document.getElementById('binary-focus').addEventListener('change', (e) => {
     }
 });
 document.getElementById('deploy-view').addEventListener('change', updateCapView);
+document.getElementById('single-band-slider').addEventListener('input', (e) => {
+    tierSettings.singleBandIntensity = parseInt(e.target.value);
+    capArray.forEach(updateAndFocus);
+});
+document.getElementById('single-tier-slider').addEventListener('input', (e) => {
+    tierSettings.singleTierHeight = parseInt(e.target.value);
+    capArray.forEach(updateAndFocus);
+});
+document.getElementById('single-tier-density').addEventListener('input', (e) => {
+    tierSettings.singleTierDensity = parseInt(e.target.value);
+    capArray.forEach(updateAndFocus);
+});
+document.getElementById('multi-tier-levels').addEventListener('input', (e) => {
+    tierSettings.multiTierLevels = parseInt(e.target.value);
+    capArray.forEach(cap => {
+        cap.tierLevel = Math.min(cap.tierLevel || 0, tierSettings.multiTierLevels - 1);
+        updateAndFocus(cap);
+    });
+});
+document.getElementById('multi-tier-spacing').addEventListener('input', (e) => {
+    tierSettings.multiTierSpacing = parseInt(e.target.value);
+    capArray.forEach(updateAndFocus);
+});
 
 // Animation loop
 function animate() {
@@ -759,13 +819,14 @@ function onWindowResize() {
 }
 window.addEventListener('resize', onWindowResize);
 
-// Initialize
-scene.background = null;
-resetCameraToDefault();
-renderHtmlCapsUI();
-renderCityKey();
-capArray.forEach(createCap);
-if (capArray[0]) focusCameraOnCap(capArray[0]);
-updateCameraControls();
-setInterval(() => localStorage.setItem('capArray', JSON.stringify(capArray)), 30000);
-animate();
+window.addEventListener('DOMContentLoaded', () => {
+    scene.background = null;
+    resetCameraToDefault();
+    renderHtmlCapsUI();
+    renderCityKey();
+    capArray.forEach(createCap);
+    if (capArray[0]) focusCameraOnCap(capArray[0]);
+    updateCameraControls();
+    setInterval(() => localStorage.setItem('capArray', JSON.stringify(capArray)), 30000);
+    animate();
+});
