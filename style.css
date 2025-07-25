@@ -163,3 +163,9 @@ button:hover {
 .hidden {
     display: none !important;
 }
+/* Color control pallet */
+.popup { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; }
+.popup-content { background: #1a1a1a; padding: 20px; border-radius: 5px; width: 300px; }
+.color-boxes { display: flex; gap: 10px; }
+.color-set { flex: 1; }
+.color-item { display: flex; align-items: center; gap: 5px; margin: 5px 0; }
