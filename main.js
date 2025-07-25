@@ -730,14 +730,20 @@ document.getElementById('wireframe-toggle').addEventListener('change', updateOpt
 document.getElementById('moon-toggle').addEventListener('change', (e) => {
     moon.visible = e.target.checked;
 });
-document.getElementById('orbit-toggle').addEventListener('change', (e) => {
-    // Option: Animate moon orbit
-});
 document.getElementById('stars-toggle').addEventListener('change', (e) => {
     starMesh.visible = e.target.checked;
 });
+document.getElementById('orbit-toggle').addEventListener('change', (e) => {
+    settings.orbitMoon = e.target.checked;
+    if (settings.enableDebugLogging) console.log('Moon orbit toggled:', settings.orbitMoon);
+});
 document.getElementById('contrast-toggle').addEventListener('change', (e) => {
-    // Option: Adjust material emissive
+    const emissiveIntensity = e.target.checked ? 0.5 : 0;
+    earthMaterial.emissive.setHex(0x333333);
+    earthMaterial.emissiveIntensity = emissiveIntensity;
+    moonMaterial.emissive.setHex(0x333333);
+    moonMaterial.emissiveIntensity = emissiveIntensity;
+    if (settings.enableDebugLogging) console.log('Contrast toggled:', emissiveIntensity);
 });
 document.getElementById('reset-view').addEventListener('click', resetCameraToDefault);
 document.getElementById('maintain-focus').addEventListener('change', (e) => {
