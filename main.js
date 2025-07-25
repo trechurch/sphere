@@ -674,7 +674,16 @@ document.getElementById('color-pallet-trigger').addEventListener('click', () => 
             input.addEventListener('change', (e) => {
                 const item = e.target.closest('.color-item');
                 const olderInput = item.querySelector('.older');
+                const newerInput = item.querySelector('.newer');
                 if (e.target.classList.contains('newer')) olderInput.value = e.target.value;
+                const elementName = item.querySelector('span').textContent;
+                const color = new THREE.Color(e.target.value);
+                if (elementName === 'Earth') earthMaterial.color.set(color);
+                else if (elementName === 'Caps') capArray.forEach(cap => {
+                    if (cap.mesh) cap.mesh.children.forEach(child => child.material.color.set(color));
+                });
+                else if (elementName === 'Stars') starMaterial.color.set(color);
+                else if (elementName === 'Moon') moonMaterial.color.set(color);
             });
         });
     }
@@ -757,26 +766,26 @@ document.getElementById('binary-focus').addEventListener('change', (e) => {
 });
 document.getElementById('deploy-view').addEventListener('change', updateCapView);
 document.getElementById('single-band-slider').addEventListener('input', (e) => {
-    tierSettings.singleBandIntensity = parseInt(e.target.value);
+    tierSettings.singleBandIntensity = Math.max(0, Math.min(100, parseInt(e.target.value)));
     capArray.forEach(updateAndFocus);
 });
 document.getElementById('single-tier-slider').addEventListener('input', (e) => {
-    tierSettings.singleTierHeight = parseInt(e.target.value);
+    tierSettings.singleTierHeight = Math.max(10, Math.min(100, parseInt(e.target.value)));
     capArray.forEach(updateAndFocus);
 });
 document.getElementById('single-tier-density').addEventListener('input', (e) => {
-    tierSettings.singleTierDensity = parseInt(e.target.value);
+    tierSettings.singleTierDensity = Math.max(1, Math.min(10, parseInt(e.target.value)));
     capArray.forEach(updateAndFocus);
 });
 document.getElementById('multi-tier-levels').addEventListener('input', (e) => {
-    tierSettings.multiTierLevels = parseInt(e.target.value);
+    tierSettings.multiTierLevels = Math.max(1, Math.min(5, parseInt(e.target.value)));
     capArray.forEach(cap => {
         cap.tierLevel = Math.min(cap.tierLevel || 0, tierSettings.multiTierLevels - 1);
         updateAndFocus(cap);
     });
 });
 document.getElementById('multi-tier-spacing').addEventListener('input', (e) => {
-    tierSettings.multiTierSpacing = parseInt(e.target.value);
+    tierSettings.multiTierSpacing = Math.max(10, Math.min(100, parseInt(e.target.value)));
     capArray.forEach(updateAndFocus);
 });
 
@@ -794,11 +803,15 @@ function animate() {
             const { lat, lon } = xyToLatLon(cap.x * xyScalers[cap.xScaler], cap.y * xyScalers[cap.yScaler]);
             const positionVector = new THREE.Vector3(...Object.values(latLonToXY(lat, lon))).normalize();
             const scaledHeight = cap.h * xyScalers[cap.hScaler] + getStackedHeight(cap.x, cap.y, cap.z);
+            if (deploymentType === 'multi-tier') {
+                scaledHeight += tierSettings.multiTierSpacing * (cap.tierLevel || 0);
+            }
             cap.mesh.position.copy(positionVector.multiplyScalar(sphereRadius + scaledHeight));
             const upVector = new THREE.Vector3(0, 1, 0);
             cap.mesh.quaternion.copy(new THREE.Quaternion().setFromUnitVectors(upVector, positionVector));
-            const scale = 1 + 0.05 * Math.sin(elapsedTime * 2); // Pulse effect
-            cap.mesh.scale.set(scale, scale, scale);
+            const baseScale = deploymentType === 'multi-tier' ? tierSettings.multiTierLevels / 3 : 1;
+            const pulseScale = 1 + 0.05 * Math.sin(elapsedTime * 2); // Optional pulse
+            cap.mesh.scale.set(baseScale * pulseScale, baseScale * pulseScale, baseScale * pulseScale);
         }
     });
     controls.update();
