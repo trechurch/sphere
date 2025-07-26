@@ -287,10 +287,10 @@ function updateCameraControls() {
 
 // Update optics
 function updateOptics() {
-    earthMesh.material.wireframe = document.getElementById('wireframe-toggle').checked;
-    starMesh.visible = document.getElementById('stars-toggle').checked;
-    moon.visible = document.getElementById('moon-toggle').checked;
-    updateCapView();
+ earthMesh.material.wireframe = document.getElementById('wireframe-toggle').checked; // Toggle Earth wireframe
+    stars.visible = document.getElementById('stars-toggle').checked; // Toggle star field (fixed)
+    moon.visible = document.getElementById('moon-toggle').checked; // Toggle moon visibility
+    updateCapView(); // Refresh cap visualization
 }
 
 // Update cap view
@@ -715,87 +715,96 @@ document.getElementById('discard-colors').addEventListener('click', () => {
     document.getElementById('color-pallet-panel').classList.add('hidden');
 });
 
-// Toggles
-document.getElementById('optics-toggle').addEventListener('change', (e) => {
-    document.getElementById('optic-management').classList.toggle('hidden', !e.target.checked);
-    if (e.target.checked) updateOptics();
-});
-document.getElementById('file-toggle').addEventListener('change', (e) => {
-    document.getElementById('file-management').classList.toggle('hidden', !e.target.checked);
-});
-document.getElementById('rotation-toggle').addEventListener('change', (e) => {
-    settings.rotateSphere = e.target.checked;
-});
-document.getElementById('wireframe-toggle').addEventListener('change', updateOptics);
-document.getElementById('moon-toggle').addEventListener('change', (e) => {
-    moon.visible = e.target.checked;
-});
-document.getElementById('stars-toggle').addEventListener('change', (e) => {
-    starMesh.visible = e.target.checked;
-});
-document.getElementById('orbit-toggle').addEventListener('change', (e) => {
-    settings.orbitMoon = e.target.checked;
-    if (settings.enableDebugLogging) console.log('Moon orbit toggled:', settings.orbitMoon);
-});
-document.getElementById('contrast-toggle').addEventListener('change', (e) => {
-    const emissiveIntensity = e.target.checked ? 0.5 : 0;
-    earthMaterial.emissive.setHex(0x333333);
-    earthMaterial.emissiveIntensity = emissiveIntensity;
-    moonMaterial.emissive.setHex(0x333333);
-    moonMaterial.emissiveIntensity = emissiveIntensity;
-    if (settings.enableDebugLogging) console.log('Contrast toggled:', emissiveIntensity);
-});
-document.getElementById('reset-view').addEventListener('click', resetCameraToDefault);
-document.getElementById('maintain-focus').addEventListener('change', (e) => {
-    if (e.target.checked) {
-        document.getElementById('ortho-focus').checked = false;
-        document.getElementById('binary-focus').checked = false;
-        const cap = capArray[settings.selectedCapIndex] || {};
-        const { x, y, z } = latLonToXY(...Object.values(xyToLatLon(cap.x, cap.y)));
-        controls.target.set(x, y, z);
-        controls.update();
-    }
-});
-document.getElementById('ortho-focus').addEventListener('change', (e) => {
-    if (e.target.checked) {
-        document.getElementById('maintain-focus').checked = false;
-        document.getElementById('binary-focus').checked = false;
-        settings.toggleCamera();
-    }
-});
-document.getElementById('binary-focus').addEventListener('change', (e) => {
-    if (e.target.checked) {
-        document.getElementById('maintain-focus').checked = false;
-        document.getElementById('ortho-focus').checked = false;
-        // Option: Focus between Earth/moon or caps
-    }
-});
-document.getElementById('deploy-view').addEventListener('change', updateCapView);
-document.getElementById('single-band-slider').addEventListener('input', (e) => {
-    tierSettings.singleBandIntensity = Math.max(0, Math.min(100, parseInt(e.target.value)));
-    capArray.forEach(updateAndFocus);
-});
-document.getElementById('single-tier-slider').addEventListener('input', (e) => {
-    tierSettings.singleTierHeight = Math.max(10, Math.min(100, parseInt(e.target.value)));
-    capArray.forEach(updateAndFocus);
-});
-document.getElementById('single-tier-density').addEventListener('input', (e) => {
-    tierSettings.singleTierDensity = Math.max(1, Math.min(10, parseInt(e.target.value)));
-    capArray.forEach(updateAndFocus);
-});
-document.getElementById('multi-tier-levels').addEventListener('input', (e) => {
-    tierSettings.multiTierLevels = Math.max(1, Math.min(5, parseInt(e.target.value)));
-    capArray.forEach(cap => {
-        cap.tierLevel = Math.min(cap.tierLevel || 0, tierSettings.multiTierLevels - 1);
-        updateAndFocus(cap);
-    });
-});
-document.getElementById('multi-tier-spacing').addEventListener('input', (e) => {
-    tierSettings.multiTierSpacing = Math.max(10, Math.min(100, parseInt(e.target.value)));
-    capArray.forEach(updateAndFocus);
-});
+// (Removed duplicate settings declaration. Use the main settings object defined earlier.)
 
-// Animation loop
+/* Setup toggle listeners after DOM is loaded */
+window.addEventListener('DOMContentLoaded', () => {
+    /* Optics panel visibility toggle */
+    document.getElementById('optics-toggle').addEventListener('change', (e) => {
+        document.getElementById('optic-management').classList.toggle('hidden', !e.target.checked);
+        if (e.target.checked) updateOptics();
+    });
+
+    /* File management panel visibility toggle */
+    document.getElementById('file-toggle').addEventListener('change', (e) => {
+        document.getElementById('file-management').classList.toggle('hidden', !e.target.checked);
+    });
+
+    /* Earth rotation toggle */
+    document.getElementById('rotation-toggle').addEventListener('change', (e) => {
+        settings.rotateSphere = e.target.checked;
+    });
+
+    /* Wireframe toggle for Earth */
+    document.getElementById('wireframe-toggle').addEventListener('change', updateOptics);
+
+    /* Moon visibility toggle */
+    document.getElementById('moon-toggle').addEventListener('change', (e) => {
+        moon.visible = e.target.checked;
+    });
+
+    /* Star field visibility toggle */
+    document.getElementById('stars-toggle').addEventListener('change', (e) => {
+        stars.visible = e.target.checked; // Fixed from starMesh
+    });
+
+    /* Moon orbit toggle */
+    document.getElementById('orbit-toggle').addEventListener('change', (e) => {
+        settings.orbitMoon = e.target.checked;
+        if (settings.enableDebugLogging) console.log('Moon orbit toggled:', settings.orbitMoon);
+    });
+
+    /* High contrast toggle for Earth and moon */
+    document.getElementById('contrast-toggle').addEventListener('change', (e) => {
+        const emissiveIntensity = e.target.checked ? 0.5 : 0;
+        earthMaterial.emissive.setHex(0x333333);
+        earthMaterial.emissiveIntensity = emissiveIntensity;
+        moonMaterial.emissive.setHex(0x333333);
+        moonMaterial.emissiveIntensity = emissiveIntensity;
+        if (settings.enableDebugLogging) console.log('Contrast toggled:', emissiveIntensity);
+    });
+
+    /* Reset camera to default view */
+    document.getElementById('reset-view').addEventListener('click', () => {
+        camera.position.set(0, 0, sphereRadius * 2);
+        controls.target.set(0, 0, 0);
+        controls.update();
+    });
+
+    /* Maintain focus on selected cap */
+    document.getElementById('maintain-focus').addEventListener('change', (e) => {
+        if (e.target.checked) {
+            document.getElementById('ortho-focus').checked = false;
+            document.getElementById('binary-focus').checked = false;
+            const cap = capArray[settings.selectedCapIndex] || {};
+            const { x, y, z } = latLonToXY(cap.lat || 29.76, cap.lon || -95.36);
+            controls.target.set(x, y, z);
+            controls.update();
+        }
+    });
+
+    /* Orthographic focus toggle (placeholder) */
+    document.getElementById('ortho-focus').addEventListener('change', (e) => {
+        if (e.target.checked) {
+            document.getElementById('maintain-focus').checked = false;
+            document.getElementById('binary-focus').checked = false;
+            // TODO: Implement orthographic camera switch if needed
+        }
+    });
+
+    /* Binary focus toggle (placeholder) */
+    document.getElementById('binary-focus').addEventListener('change', (e) => {
+        if (e.target.checked) {
+            document.getElementById('maintain-focus').checked = false;
+            document.getElementById('ortho-focus').checked = false;
+            // TODO: Implement binary focus (e.g., Earth/moon or caps)
+        }
+    });
+
+    /* Deployment view toggle */
+    document.getElementById('deploy-view').addEventListener('change', updateCapView);
+});
+/* animate */
 function animate() {
     requestAnimationFrame(animate);
     const elapsedTime = Date.now() * 0.0001;
