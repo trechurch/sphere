@@ -15,7 +15,27 @@ canvas {
     color: red; 
     font-family: Arial; 
 }
+/* Example of using the new CSS variables in index.html */
+:root {
+  --panel-bg-color: rgba(0, 0, 0, 0.7);
+  --panel-text-color: white;
+  --panel-border-color: #444;
+  --button-bg-color: #555;
+}
 
+.controls {
+  background: var(--panel-bg-color);
+  color: var(--panel-text-color);
+  /* ... etc ... */
+}
+.control-section {
+  border: 1px solid var(--panel-border-color);
+  /* ... etc ... */
+}
+.control-row button {
+  background-color: var(--button-bg-color);
+  /* ... etc ... */
+}
 /* Base styles for control panels */
 .controls {
     position: absolute;

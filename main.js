@@ -13,7 +13,7 @@ const scene = new THREE.Scene();
 window.addEventListener('DOMContentLoaded', () => {
   // safely bind events here
 });
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 200000);
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 500000);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
@@ -81,13 +81,6 @@ const cloudMesh = new THREE.Mesh(cloudGeometry, cloudMaterial);
 const earthGroup = new THREE.Group();
 earthGroup.add(earthMesh, cloudMesh);
 scene.add(earthGroup);
-
-// Lighting
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
-scene.add(ambientLight);
-const sunLight = new THREE.DirectionalLight(0xffffff, 1.0);
-sunLight.position.set(-15000, 5000, 10000);
-scene.add(sunLight);
 
 // Camera controls
 const controls = new OrbitControls(camera, renderer.domElement);
@@ -288,7 +281,7 @@ function updateCameraControls() {
 // Update optics
 function updateOptics() {
  earthMesh.material.wireframe = document.getElementById('wireframe-toggle').checked; // Toggle Earth wireframe
-    stars.visible = document.getElementById('stars-toggle').checked; // Toggle star field (fixed)
+    starMesh.visible = document.getElementById('stars-toggle').checked; // Toggle star field (fixed)
     moon.visible = document.getElementById('moon-toggle').checked; // Toggle moon visibility
     updateCapView(); // Refresh cap visualization
 }
@@ -423,7 +416,16 @@ const advancedFolder = gui.addFolder('Advanced Settings');
 advancedFolder.add(settings, 'rotateSpeed', 0.1, 2.0).name('Rotation Speed').onChange(v => controls.rotateSpeed = v);
 advancedFolder.add(settings, 'dampingFactor', 0.01, 0.1).name('Damping Factor').onChange(v => controls.dampingFactor = v);
 advancedFolder.add(settings, 'zoomSpeed', 0.5, 2.0).name('Zoom Speed').onChange(v => controls.zoomSpeed = v);
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.3); 
+scene.add(ambientLight);
 
+// Add a HemisphereLight for softer, more global illumination
+const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.5); // Sky color, ground color, intensity
+scene.add(hemisphereLight);
+
+const sunLight = new THREE.DirectionalLight(0xffffff, 1.0);
+sunLight.position.set(-15000, 5000, 10000);
+scene.add(sunLight);
 // Pop-up management console
 function toggleAdvancedControls() {
     const panel = document.getElementById('advanced-controls-panel');
@@ -660,9 +662,9 @@ document.getElementById('color-pallet-trigger').addEventListener('click', () => 
     const panel = document.getElementById('color-pallet-panel');
     panel.classList.toggle('hidden');
     if (!panel.classList.contains('hidden')) {
-        const elements = ['Earth', 'Caps', 'Stars', 'Moon'];
-        const newer = document.getElementById('newer-colors');
-        const older = document.getElementById('older-colors');
+        const elements = ['Panel Background', 'Panel Text', 'Panel Border', 'Button Background'];
+const newer = document.getElementById('newer-colors');
+const older = document.getElementById('older-colors');
         newer.innerHTML = older.innerHTML = elements.map(el => `
             <div class="color-item">
                 <span>${el}</span>
@@ -670,22 +672,25 @@ document.getElementById('color-pallet-trigger').addEventListener('click', () => 
                 <input type="color" class="older" value="#ffffff">
             </div>
         `).join('');
-        document.querySelectorAll('.color-item input').forEach(input => {
-            input.addEventListener('change', (e) => {
-                const item = e.target.closest('.color-item');
-                const olderInput = item.querySelector('.older');
-                const newerInput = item.querySelector('.newer');
-                if (e.target.classList.contains('newer')) olderInput.value = e.target.value;
-                const elementName = item.querySelector('span').textContent;
-                const color = new THREE.Color(e.target.value);
-                if (elementName === 'Earth') earthMaterial.color.set(color);
-                else if (elementName === 'Caps') capArray.forEach(cap => {
-                    if (cap.mesh) cap.mesh.children.forEach(child => child.material.color.set(color));
-                });
-                else if (elementName === 'Stars') starMaterial.color.set(color);
-                else if (elementName === 'Moon') moonMaterial.color.set(color);
-            });
-        });
+        document.querySelectorAll('#newer-colors .color-item input.newer').forEach(input => {
+    input.addEventListener('change', (e) => {
+        const item = e.target.closest('.color-item');
+        const elementName = item.querySelector('span').textContent;
+        const color = e.target.value;
+        const root = document.documentElement;
+
+        // Map element names to CSS variable names
+        let cssVarName = '';
+        if (elementName === 'Panel Background') cssVarName = '--panel-bg-color';
+        else if (elementName === 'Panel Text') cssVarName = '--panel-text-color';
+        else if (elementName === 'Panel Border') cssVarName = '--panel-border-color';
+        else if (elementName === 'Button Background') cssVarName = '--button-bg-color';
+        
+        if (cssVarName) {
+            root.style.setProperty(cssVarName, color);
+        }
+    });
+});
     }
 });
 
@@ -745,7 +750,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     /* Star field visibility toggle */
     document.getElementById('stars-toggle').addEventListener('change', (e) => {
-        stars.visible = e.target.checked; // Fixed from starMesh
+        starMesh.visible = e.target.checked; // Fixed from starMesh
     });
 
     /* Moon orbit toggle */
