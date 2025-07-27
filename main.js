@@ -1,5 +1,42 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { createSphericalCap } from './modules/capManager.js'; // if not already
+cap.mesh = null; // clear any previous mesh
+createSphericalCap(cap, {
+  radius: sphereRadius,
+  sizeScalers,
+  deploymentType,
+  directionColors,
+  tierSettings,
+  xyScalers,
+  getStackedHeight,
+  earthGroup,
+  debug: settings.enableDebugLogging,
+});
+import { loadTextureConfig, loadTextures, showTextureSelectorUI, saveTextureConfig } from './modules/textureManager.js';
+import { initScene, initEarthGroup, initMoon } from './modules/sceneSetup.js';
+
+let texturePaths = loadTextureConfig();
+let textures = await loadTextures(texturePaths);
+
+if (!textures || textures.useDefaults) {
+  showTextureSelectorUI(async (selectedPaths) => {
+    saveTextureConfig(selectedPaths);
+    textures = await loadTextures(selectedPaths);
+    bootApp(textures);
+  });
+} else {
+  bootApp(textures);
+}
+
+function bootApp(textures) {
+  const { scene, camera, renderer } = initScene();
+  const earthGroup = initEarthGroup(textures);
+  const moon = initMoon(textures);
+  scene.add(earthGroup, moon);
+  // continue...
+}
+
 
 // Note: dat.gui is loaded via <script> in index.html, using global dat.GUI
 // Future Modularization Plan:
@@ -14,7 +51,12 @@ console.log("🚀 main.js loaded");
 window.addEventListener("DOMContentLoaded", () => {
   scene.background = new THREE.Color(0x000000); // Default background color
 });
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 500000);
+const camera = new THREE.PerspectiveCamera(
+  75,
+  window.innerWidth / window.innerHeight,
+  0.1,
+  500000
+);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
@@ -41,18 +83,28 @@ const textureLoader = new THREE.TextureLoader();
 textureLoader.setCrossOrigin("");
 
 // Texture file path variables
-let earthMapPath = './textures/dLHeJw.jpg';
-let earthBumpMapPath = './textures/earthbump.jpg';
-let earthCloudPath = './textures/earthCloud.png';
-let moonMapPath = './textures/moonmap.jpg'; // Default moon texture
-let moonBumpMapPath = './textures/moonbump.jpg'; // Default moon bump map
-let starMapPath = './textures/starmap.jpg'; // Default star map
+let earthMapPath = "./textures/dLHeJw.jpg";
+let earthBumpMapPath = "./textures/earthbump.jpg";
+let earthCloudPath = "./textures/earthCloud.png";
+let moonMapPath = "./textures/moonmap.jpg"; // Default moon texture
+let moonBumpMapPath = "./textures/moonbump.jpg"; // Default moon bump map
+let starMapPath = "./textures/starmap.jpg"; // Default star map
 
 // Earth setup with debug logs
 const sphereRadius = 6371;
 const earthGeometry = new THREE.SphereGeometry(sphereRadius, 64, 64);
-const earthTexture = textureLoader.load(earthMapPath, () => console.log('Earth texture loaded'), undefined, (err) => console.error('Earth texture failed:', err));
-const earthBumpMap = textureLoader.load(earthBumpMapPath, () => console.log('Earth bump map loaded'), undefined, (err) => console.error('Earth bump map failed:', err));
+const earthTexture = textureLoader.load(
+  earthMapPath,
+  () => console.log("Earth texture loaded"),
+  undefined,
+  (err) => console.error("Earth texture failed:", err)
+);
+const earthBumpMap = textureLoader.load(
+  earthBumpMapPath,
+  () => console.log("Earth bump map loaded"),
+  undefined,
+  (err) => console.error("Earth bump map failed:", err)
+);
 const earthMaterial = new THREE.MeshPhongMaterial({
   map: earthTexture,
   bumpMap: earthBumpMap,
@@ -81,7 +133,10 @@ scene.add(earthGroup);
 
 // Wireframe Moon setup
 const moonGeometry = new THREE.SphereGeometry(1737, 32, 32); // Moon radius ~1737 km
-const moonMaterial = new THREE.MeshBasicMaterial({ color: 0x888888, wireframe: true });
+const moonMaterial = new THREE.MeshBasicMaterial({
+  color: 0x888888,
+  wireframe: true,
+});
 const moon = new THREE.Mesh(moonGeometry, moonMaterial);
 moon.position.set(384400, 0, 0); // Approx. Earth-Moon distance
 scene.add(moon);
@@ -103,7 +158,8 @@ function latLonToXY(lat, lon) {
 function xyToLatLon(x, y) {
   const r = Math.sqrt(x * x + y * y);
   const lat = Math.asin(y / sphereRadius) * (180 / Math.PI);
-  const lon = Math.atan2(x, r * Math.cos(Math.asin(y / sphereRadius))) * (180 / Math.PI);
+  const lon =
+    Math.atan2(x, r * Math.cos(Math.asin(y / sphereRadius))) * (180 / Math.PI);
   return { lat, lon };
 }
 
@@ -145,7 +201,8 @@ const xyScalerLabels = { "0.1x": 0, "0.3x": 1, "0.5x": 2, "0.7x": 3, "1x": 4 };
 const sizeScalerLabels = { Tiny: 0, Small: 1, Medium: 2, Large: 3, Huge: 4 };
 controls.dampingFactor = 0.05;
 controls.minDistance = sphereRadius + 100;
-controls.maxDistance = (16 * sphereRadius) / Math.tan((camera.fov * (Math.PI / 180)) / 2);
+controls.maxDistance =
+  (16 * sphereRadius) / Math.tan((camera.fov * (Math.PI / 180)) / 2);
 controls.rotateSpeed = 0.5;
 controls.enablePan = true;
 controls.enableZoom = true;
@@ -206,9 +263,7 @@ function getStackedHeight(x, y, z) {
   return (
     existingCaps.length *
     10 *
-    (deploymentType === "single-tier"
-      ? tierSettings.singleTierHeight / 50
-      : 1)
+    (deploymentType === "single-tier" ? tierSettings.singleTierHeight / 50 : 1)
   );
 }
 
@@ -239,7 +294,72 @@ function checkAndMergeCaps(newCap) {
     });
   }
 }
+function createSphericalCap(cap, options = {}) {
+  const {
+    radius = sphereRadius,
+    sizeScalers = [0.05, 0.1, 0.2, 0.5, 1],
+    deploymentType = "single-band",
+    directionColors = {},
+    tierSettings = {
+      singleBandIntensity: 50,
+      multiTierSpacing: 50,
+      multiTierLevels: 3,
+    },
+    debug = false,
+  } = options;
 
+  if (cap.mesh) earthGroup.remove(cap.mesh);
+
+  const { lat, lon } = xyToLatLon(cap.x, cap.y);
+  const positionVector = new THREE.Vector3(
+    ...Object.values(latLonToXY(lat, lon))
+  ).normalize();
+
+  let scaledHeight =
+    cap.h * xyScalers[cap.hScaler] + getStackedHeight(cap.x, cap.y, cap.z);
+  if (deploymentType === "multi-tier") {
+    scaledHeight += tierSettings.multiTierSpacing * (cap.tierLevel || 0);
+  }
+
+  const capMaterial = new THREE.MeshBasicMaterial({
+    color: directionColors[cap.direction] || 0xff0000,
+    transparent: true,
+    opacity:
+      deploymentType === "single-band"
+        ? tierSettings.singleBandIntensity / 100
+        : 0.9,
+    side: THREE.DoubleSide,
+  });
+
+  const capMeshMain = new THREE.Mesh(capGeometry, capMaterial);
+
+  // Optional grounding tweak (may not be needed with correct capAngle)
+  capGeometry.computeBoundingBox();
+  const height = capGeometry.boundingBox.max.y - capGeometry.boundingBox.min.y;
+  const offset = radius - height;
+
+  const capMesh = new THREE.Group();
+  capMesh.position.copy(
+    positionVector.multiplyScalar(radius + scaledHeight - offset)
+  );
+  capMesh.quaternion.copy(
+    new THREE.Quaternion().setFromUnitVectors(
+      new THREE.Vector3(0, 1, 0),
+      positionVector
+    )
+  );
+  capMesh.add(capMeshMain);
+  capMesh.userData = {
+    size: capExtent,
+    originalPosition: { x: cap.x, y: cap.y, h: cap.h, z: cap.z },
+  };
+
+  cap.mesh = capMesh;
+  earthGroup.add(capMesh);
+  checkAndMergeCaps(cap);
+
+  if (debug) console.log("✅ Created spherical cap:", cap);
+}
 function createCap(cap) {
   if (settings.enableDebugLogging) console.log("Creating cap:", cap);
   if (cap.mesh) earthGroup.remove(cap.mesh);
@@ -260,23 +380,19 @@ function createCap(cap) {
     upVector,
     positionVector
   );
+
   const capMesh = new THREE.Group();
   capMesh.position.copy(
     positionVector.multiplyScalar(sphereRadius + scaledHeight)
   );
+
+  // Use SphereGeometry for a controlled spherical cap
+  const capBaseRadius = sphereRadius; // Match Earth's radius
   const capSize =
     deploymentType === "multi-tier"
       ? cap.size * (tierSettings.multiTierLevels / 3)
       : cap.size;
-  const capGeo = new THREE.SphereGeometry(
-    500 * capSize * sizeScalers[cap.sizeScaler],
-    32,
-    16,
-    0,
-    Math.PI * 2,
-    0,
-    Math.PI / 2
-  );
+
   const capMat = new THREE.MeshBasicMaterial({
     color: directionColors[cap.direction] || 0xff0000,
     transparent: true,
@@ -287,27 +403,19 @@ function createCap(cap) {
     side: THREE.DoubleSide,
   });
   const capMeshMain = new THREE.Mesh(capGeo, capMat);
-  const directionAngle = directions.indexOf(cap.direction) * (Math.PI / 4);
-  const directionGeo = new THREE.SphereGeometry(
-    500 * capSize * sizeScalers[cap.sizeScaler],
-    32,
-    16,
-    directionAngle - Math.PI / 8,
-    Math.PI / 4,
-    0,
-    Math.PI / 2
+
+  // Adjust to ensure contact with the surface
+  capMeshMain.geometry.computeBoundingBox();
+  const bbox = capMeshMain.geometry.boundingBox;
+  const surfaceOffset = sphereRadius - (bbox.max.y - bbox.min.y); // Adjust to base at surface
+  capMesh.position.sub(
+    positionVector.multiplyScalar(surfaceOffset - scaledHeight)
   );
-  const directionMat = new THREE.MeshBasicMaterial({
-    color: directionColors[cap.direction] || 0xff0000,
-    transparent: true,
-    opacity: 0.7,
-    side: THREE.DoubleSide,
-  });
-  const directionMesh = new THREE.Mesh(directionGeo, directionMat);
-  capMesh.add(capMeshMain, directionMesh);
+
+  capMesh.add(capMeshMain);
   capMesh.quaternion.copy(quaternion);
   capMesh.userData = {
-    size: capSize * sizeScalers[cap.sizeScaler],
+    size: capExtent,
     originalPosition: { x: cap.x, y: cap.y, h: cap.h, z: cap.z },
   };
   cap.mesh = capMesh;
@@ -460,8 +568,7 @@ function updateCapView() {
         side: THREE.DoubleSide,
       });
       const capMeshMain = new THREE.Mesh(capGeo, capMat);
-      const directionAngle =
-        directions.indexOf(cap.direction) * (Math.PI / 4);
+      const directionAngle = directions.indexOf(cap.direction) * (Math.PI / 4);
       const directionGeo = new THREE.SphereGeometry(
         500 * capSize * sizeScalers[cap.sizeScaler],
         32,
@@ -614,13 +721,11 @@ function toggleAdvancedControls() {
 document
   .getElementById("advanced-controls-trigger")
   .addEventListener("click", settings.toggleAdvancedControls);
-document
-  .getElementById("validation-toggle")
-  .addEventListener("change", (e) => {
-    settings.enableValidation = e.target.checked;
-    if (settings.enableDebugLogging)
-      console.log("Validation toggled:", settings.enableValidation);
-  });
+document.getElementById("validation-toggle").addEventListener("change", (e) => {
+  settings.enableValidation = e.target.checked;
+  if (settings.enableDebugLogging)
+    console.log("Validation toggled:", settings.enableValidation);
+});
 document.getElementById("logging-toggle").addEventListener("change", (e) => {
   settings.enableDebugLogging = e.target.checked;
   console.log("Debug logging toggled:", settings.enableDebugLogging);
@@ -723,10 +828,12 @@ document.getElementById("load-caps-input").addEventListener("change", (e) => {
 
       // Load texture paths
       earthMapPath = loadedData.texturePaths.earthMapPath || earthMapPath;
-      earthBumpMapPath = loadedData.texturePaths.earthBumpMapPath || earthBumpMapPath;
+      earthBumpMapPath =
+        loadedData.texturePaths.earthBumpMapPath || earthBumpMapPath;
       earthCloudPath = loadedData.texturePaths.earthCloudPath || earthCloudPath;
       moonMapPath = loadedData.texturePaths.moonMapPath || moonMapPath;
-      moonBumpMapPath = loadedData.texturePaths.moonBumpMapPath || moonBumpMapPath;
+      moonBumpMapPath =
+        loadedData.texturePaths.moonBumpMapPath || moonBumpMapPath;
       starMapPath = loadedData.texturePaths.starMapPath || starMapPath;
 
       // Reload textures
@@ -741,16 +848,21 @@ document.getElementById("load-caps-input").addEventListener("change", (e) => {
       cloudMaterial.map = cloudTexture;
 
       // Load colors
-      settings.panelBgColor = loadedData.colors.panelBgColor || settings.panelBgColor;
-      settings.panelTextColor = loadedData.colors.panelTextColor || settings.panelTextColor;
-      settings.panelBorderColor = loadedData.colors.panelBorderColor || settings.panelBorderColor;
-      settings.buttonBgColor = loadedData.colors.buttonBgColor || settings.buttonBgColor;
+      settings.panelBgColor =
+        loadedData.colors.panelBgColor || settings.panelBgColor;
+      settings.panelTextColor =
+        loadedData.colors.panelTextColor || settings.panelTextColor;
+      settings.panelBorderColor =
+        loadedData.colors.panelBorderColor || settings.panelBorderColor;
+      settings.buttonBgColor =
+        loadedData.colors.buttonBgColor || settings.buttonBgColor;
       applyColorSettings();
 
       renderHtmlCapsUI();
       capArray.forEach(createCap);
       if (capArray[0]) focusCameraOnCap(capArray[0]);
-      if (settings.enableDebugLogging) console.log("Loaded settings:", loadedData);
+      if (settings.enableDebugLogging)
+        console.log("Loaded settings:", loadedData);
     };
     reader.readAsText(file);
   }
@@ -856,10 +968,14 @@ document.getElementById("save-colors").addEventListener("click", () => {
     const olderInput = item.querySelector(".older");
     if (newerInput && olderInput) {
       olderInput.value = newerInput.value;
-      if (newerInput.id === "panel-bg-newer") settings.panelBgColor = newerInput.value;
-      if (newerInput.id === "panel-text-newer") settings.panelTextColor = newerInput.value;
-      if (newerInput.id === "panel-border-newer") settings.panelBorderColor = newerInput.value;
-      if (newerInput.id === "button-bg-newer") settings.buttonBgColor = newerInput.value;
+      if (newerInput.id === "panel-bg-newer")
+        settings.panelBgColor = newerInput.value;
+      if (newerInput.id === "panel-text-newer")
+        settings.panelTextColor = newerInput.value;
+      if (newerInput.id === "panel-border-newer")
+        settings.panelBorderColor = newerInput.value;
+      if (newerInput.id === "button-bg-newer")
+        settings.buttonBgColor = newerInput.value;
     }
   });
   applyColorSettings();
@@ -896,11 +1012,9 @@ window.addEventListener("DOMContentLoaded", () => {
       .classList.toggle("hidden", !e.target.checked);
   });
 
-  document
-    .getElementById("rotation-toggle")
-    .addEventListener("change", (e) => {
-      settings.rotateSphere = e.target.checked;
-    });
+  document.getElementById("rotation-toggle").addEventListener("change", (e) => {
+    settings.rotateSphere = e.target.checked;
+  });
 
   document
     .getElementById("wireframe-toggle")
@@ -916,17 +1030,15 @@ window.addEventListener("DOMContentLoaded", () => {
       console.log("Moon orbit toggled:", settings.orbitMoon);
   });
 
-  document
-    .getElementById("contrast-toggle")
-    .addEventListener("change", (e) => {
-      const emissiveIntensity = e.target.checked ? 0.5 : 0;
-      earthMaterial.emissive.setHex(0x333333);
-      earthMaterial.emissiveIntensity = emissiveIntensity;
-      moonMaterial.emissive.setHex(0x333333);
-      moonMaterial.emissiveIntensity = emissiveIntensity;
-      if (settings.enableDebugLogging)
-        console.log("Contrast toggled:", emissiveIntensity);
-    });
+  document.getElementById("contrast-toggle").addEventListener("change", (e) => {
+    const emissiveIntensity = e.target.checked ? 0.5 : 0;
+    earthMaterial.emissive.setHex(0x333333);
+    earthMaterial.emissiveIntensity = emissiveIntensity;
+    moonMaterial.emissive.setHex(0x333333);
+    moonMaterial.emissiveIntensity = emissiveIntensity;
+    if (settings.enableDebugLogging)
+      console.log("Contrast toggled:", emissiveIntensity);
+  });
 
   document.getElementById("reset-view").addEventListener("click", () => {
     camera.position.set(0, 0, sphereRadius * 2);
@@ -934,18 +1046,16 @@ window.addEventListener("DOMContentLoaded", () => {
     controls.update();
   });
 
-  document
-    .getElementById("maintain-focus")
-    .addEventListener("change", (e) => {
-      if (e.target.checked) {
-        document.getElementById("ortho-focus").checked = false;
-        document.getElementById("binary-focus").checked = false;
-        const cap = capArray[settings.selectedCapIndex] || {};
-        const { x, y, z } = latLonToXY(cap.lat || 29.76, cap.lon || -95.36);
-        controls.target.set(x, y, z);
-        controls.update();
-      }
-    });
+  document.getElementById("maintain-focus").addEventListener("change", (e) => {
+    if (e.target.checked) {
+      document.getElementById("ortho-focus").checked = false;
+      document.getElementById("binary-focus").checked = false;
+      const cap = capArray[settings.selectedCapIndex] || {};
+      const { x, y, z } = latLonToXY(cap.lat || 29.76, cap.lon || -95.36);
+      controls.target.set(x, y, z);
+      controls.update();
+    }
+  });
 
   document.getElementById("ortho-focus").addEventListener("change", (e) => {
     if (e.target.checked) {
@@ -982,13 +1092,7 @@ function animate() {
       new THREE.Vector3(0, 1, 0),
       elapsedTime * 0.25
     );
-    earthMesh.quaternion.copy(rotationQuaternion);
-    cloudMesh.quaternion.copy(
-      new THREE.Quaternion().setFromAxisAngle(
-        new THREE.Vector3(0, 1, 0),
-        elapsedTime * 0.28
-      )
-    );
+    earthGroup.quaternion.copy(rotationQuaternion); // Rotate the entire group
   }
 
   capArray.forEach((cap) => {
@@ -998,8 +1102,7 @@ function animate() {
         cap.y * xyScalers[cap.yScaler]
       );
       let scaledHeight =
-        cap.h * xyScalers[cap.hScaler] +
-        getStackedHeight(cap.x, cap.y, cap.z);
+        cap.h * xyScalers[cap.hScaler] + getStackedHeight(cap.x, cap.y, cap.z);
       if (deploymentType === "multi-tier") {
         scaledHeight += tierSettings.multiTierSpacing * (cap.tierLevel || 0);
       }
@@ -1007,22 +1110,20 @@ function animate() {
       const normalizedDirection = new THREE.Vector3(
         ...Object.values(latLonToXY(lat, lon))
       ).normalize();
-
       const upVector = new THREE.Vector3(0, 1, 0);
       const quaternion = new THREE.Quaternion().setFromUnitVectors(
         upVector,
         normalizedDirection
       );
-      cap.mesh.quaternion.copy(quaternion);
 
-      cap.mesh.position.copy(
-        normalizedDirection.multiplyScalar(sphereRadius + scaledHeight)
-      );
+      // Apply Earth's rotation to the cap's position
+      cap.mesh.position
+        .copy(normalizedDirection.multiplyScalar(sphereRadius + scaledHeight))
+        .applyQuaternion(earthGroup.quaternion);
+      cap.mesh.quaternion.copy(quaternion).multiply(earthGroup.quaternion);
 
       const baseScale =
-        deploymentType === "multi-tier"
-          ? tierSettings.multiTierLevels / 3
-          : 1;
+        deploymentType === "multi-tier" ? tierSettings.multiTierLevels / 3 : 1;
       const pulseScale = 1 + 0.05 * Math.sin(Date.now() * 0.0001 * 2);
       cap.mesh.scale.set(
         baseScale * pulseScale,
@@ -1179,8 +1280,28 @@ document
           (el) => `
             <div class="color-item">
                 <span>${el}</span>
-                <input type="color" class="newer" id="${el.toLowerCase().replace(' ', '-')}-newer" value="${el === 'Panel Background' ? settings.panelBgColor : el === 'Panel Text' ? settings.panelTextColor : el === 'Panel Border' ? settings.panelBorderColor : settings.buttonBgColor}">
-                <input type="color" class="older" id="${el.toLowerCase().replace(' ', '-')}-older" value="${el === 'Panel Background' ? settings.panelBgColor : el === 'Panel Text' ? settings.panelTextColor : el === 'Panel Border' ? settings.panelBorderColor : settings.buttonBgColor}">
+                <input type="color" class="newer" id="${el
+                  .toLowerCase()
+                  .replace(" ", "-")}-newer" value="${
+            el === "Panel Background"
+              ? settings.panelBgColor
+              : el === "Panel Text"
+              ? settings.panelTextColor
+              : el === "Panel Border"
+              ? settings.panelBorderColor
+              : settings.buttonBgColor
+          }">
+                <input type="color" class="older" id="${el
+                  .toLowerCase()
+                  .replace(" ", "-")}-older" value="${
+            el === "Panel Background"
+              ? settings.panelBgColor
+              : el === "Panel Text"
+              ? settings.panelTextColor
+              : el === "Panel Border"
+              ? settings.panelBorderColor
+              : settings.buttonBgColor
+          }">
             </div>
           `
         )
@@ -1195,10 +1316,14 @@ document
             const root = document.documentElement;
 
             let cssVarName = "";
-            if (elementName === "Panel Background") cssVarName = "--panel-bg-color";
-            else if (elementName === "Panel Text") cssVarName = "--panel-text-color";
-            else if (elementName === "Panel Border") cssVarName = "--panel-border-color";
-            else if (elementName === "Button Background") cssVarName = "--button-bg-color";
+            if (elementName === "Panel Background")
+              cssVarName = "--panel-bg-color";
+            else if (elementName === "Panel Text")
+              cssVarName = "--panel-text-color";
+            else if (elementName === "Panel Border")
+              cssVarName = "--panel-border-color";
+            else if (elementName === "Button Background")
+              cssVarName = "--button-bg-color";
 
             if (cssVarName) {
               root.style.setProperty(cssVarName, color);
