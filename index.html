@@ -11,6 +11,7 @@
     </script>
     <script type="module" src="main.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.7/dat.gui.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dat.gui@0.7.9/build/dat.gui.min.js"></script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Three.js Globe with Caps</title>
@@ -154,84 +155,87 @@
     <div id="html-controls" class="controls">
       <div class="control-section">
         <h3>General Controls</h3>
-        <div class="control-row">
-          <div class="control-label"><label>Background Color</label></div>
-          <div class="control-input">
-            <input type="color" id="bg-color" value="#000000" />
-          </div>
-        </div>
-        <div class="control-row">
-          <div class="control-label"><label>Rotate Sphere</label></div>
-          <div class="control-input">
-            <input type="checkbox" id="rotate-sphere" checked />
-          </div>
-        </div>
-        <div class="control-row">
-          <div class="control-label"><label>Preserve Target</label></div>
-          <div class="control-input">
-            <input type="checkbox" id="preserve-target" />
-          </div>
-        </div>
-        <div class="control-row">
-          <div class="control-label"><label>Reset Camera</label></div>
-          <div class="control-input">
-            <button id="reset-camera-btn">Reset</button>
-          </div>
-        </div>
-      </div>
-      <div class="control-section">
-        <h3>Optics</h3>
-        <div class="control-row">
-          <div class="control-label"><label>Optics</label></div>
-          <div class="control-input">
-            <input type="checkbox" id="optics-toggle" />
-          </div>
-        </div>
-        <div id="optic-management" class="hidden">
-          <div class="control-row">
-            <div class="control-label"><label>Wireframe</label></div>
-            <div class="control-input">
-              <input type="checkbox" id="wireframe-toggle" />
+        <div id="html-controls" class="controls">
+          <div class="control-section">
+            <h3>General Controls</h3>
+            <div class="control-row">
+              <div class="control-label"><label>Background Color</label></div>
+              <div class="control-input">
+                <input type="color" id="bg-color" value="#000000" />
+              </div>
+            </div>
+            <div class="control-row">
+              <div class="control-label"><label>Rotate Sphere</label></div>
+              <div class="control-input">
+                <input type="checkbox" id="rotate-sphere" checked />
+              </div>
+            </div>
+            <div class="control-row">
+              <div class="control-label"><label>Preserve Target</label></div>
+              <div class="control-input">
+                <input type="checkbox" id="preserve-target" />
+              </div>
+            </div>
+            <div class="control-row">
+              <div class="control-label"><label>Reset Camera</label></div>
+              <div class="control-input">
+                <button id="reset-camera-btn">Reset</button>
+              </div>
             </div>
           </div>
-          <div class="control-row">
-            <div class="control-label"><label>Rotation</label></div>
-            <div class="control-input">
-              <input type="checkbox" id="rotation-toggle" checked />
+          <div class="control-section">
+            <h3>Optics</h3>
+            <div class="control-row">
+              <div class="control-label"><label>Optics</label></div>
+              <div class="control-input">
+                <input type="checkbox" id="optics-toggle" />
+              </div>
+            </div>
+            <div id="optic-management" class="hidden">
+              <div class="control-row">
+                <div class="control-label"><label>Wireframe</label></div>
+                <div class="control-input">
+                  <input type="checkbox" id="wireframe-toggle" />
+                </div>
+              </div>
+              <div class="control-row">
+                <div class="control-label"><label>Rotation</label></div>
+                <div class="control-input">
+                  <input type="checkbox" id="rotation-toggle" checked />
+                </div>
+              </div>
+              <div class="control-row">
+                <div class="control-label"><label>Moon</label></div>
+                <div class="control-input">
+                  <input type="checkbox" id="moon-toggle" checked />
+                </div>
+              </div>
+              <div class="control-row">
+                <div class="control-label"><label>Orbit</label></div>
+                <div class="control-input">
+                  <input type="checkbox" id="orbit-toggle" />
+                </div>
+              </div>
+              <div class="control-row">
+                <div class="control-label"><label>Stars</label></div>
+                <div class="control-input">
+                  <input type="checkbox" id="stars-toggle" checked />
+                </div>
+              </div>
+              <div class="control-row">
+                <div class="control-label"><label>Contrast</label></div>
+                <div class="control-input">
+                  <input type="checkbox" id="contrast-toggle" />
+                </div>
+              </div>
+              <div class="control-row">
+                <div class="control-label"><label>Deploy View</label></div>
+                <div class="control-input">
+                  <input type="checkbox" id="deploy-view" />
+                </div>
+              </div>
             </div>
           </div>
-          <div class="control-row">
-            <div class="control-label"><label>Moon</label></div>
-            <div class="control-input">
-              <input type="checkbox" id="moon-toggle" checked />
-            </div>
-          </div>
-          <div class="control-row">
-            <div class="control-label"><label>Orbit</label></div>
-            <div class="control-input">
-              <input type="checkbox" id="orbit-toggle" />
-            </div>
-          </div>
-          <div class="control-row">
-            <div class="control-label"><label>Stars</label></div>
-            <div class="control-input">
-              <input type="checkbox" id="stars-toggle" checked />
-            </div>
-          </div>
-          <div class="control-row">
-            <div class="control-label"><label>Contrast</label></div>
-            <div class="control-input">
-              <input type="checkbox" id="contrast-toggle" />
-            </div>
-          </div>
-          <div class="control-row">
-            <div class="control-label"><label>Deploy View</label></div>
-            <div class="control-input">
-              <input type="checkbox" id="deploy-view" />
-            </div>
-          </div>
-        </div>
-      </div>
       <div class="control-section">
         <h3>File Management</h3>
         <div class="control-row">
