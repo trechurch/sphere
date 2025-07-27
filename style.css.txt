@@ -1,0 +1,191 @@
+/* General page styles */
+body { 
+    margin: 0; 
+    overflow: hidden; 
+    background-color: #000; 
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+canvas { 
+    display: block; 
+}
+#error { 
+    position: absolute; 
+    top: 10px; 
+    left: 10px; 
+    color: red; 
+    font-family: Arial; 
+}
+/* Example of using the new CSS variables in index.html */
+:root {
+  --panel-bg-color: rgba(0, 0, 0, 0.7);
+  --panel-text-color: white;
+  --panel-border-color: #444;
+  --button-bg-color: #555;
+}
+
+.controls {
+  background: var(--panel-bg-color);
+  color: var(--panel-text-color);
+  /* ... etc ... */
+}
+.control-section {
+  border: 1px solid var(--panel-border-color);
+  /* ... etc ... */
+}
+.control-row button {
+  background-color: var(--button-bg-color);
+  /* ... etc ... */
+}
+/* Base styles for control panels */
+.controls {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 300px;
+    background: #1a1a1a;
+    color: #fff;
+    border-radius: 5px;
+    max-height: calc(100vh - 20px);
+    overflow-y: auto;
+}
+
+/* dat.GUI container */
+#dat-gui-container {
+    right: 10px; /* Position it like the original */
+}
+
+/* Custom scrollbar for webkit browsers */
+.controls::-webkit-scrollbar {
+    width: 8px;
+}
+.controls::-webkit-scrollbar-track {
+    background: #2c2c2c;
+}
+.controls::-webkit-scrollbar-thumb {
+    background: #555;
+    border-radius: 4px;
+}
+.controls::-webkit-scrollbar-thumb:hover {
+    background: #777;
+}
+
+/* New HTML Panel styles */
+#html-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px;
+    box-sizing: border-box; /* Ensures padding doesn't affect width */
+}
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #333;
+}
+.panel-header h3 {
+    margin: 0;
+}
+
+fieldset {
+    border: 1px solid #333;
+    border-radius: 4px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+legend {
+    color: #aaa;
+    padding: 0 5px;
+}
+
+.control-row, .control-row-stacked {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+}
+.control-row-stacked {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 5px;
+}
+
+label {
+    color: #ddd;
+}
+
+input[type="color"] {
+    border: none;
+    background: none;
+    width: 40px;
+    height: 20px;
+    padding: 0;
+    border-radius: 3px;
+}
+
+input[type="range"] {
+    width: 100%;
+    margin: 0;
+}
+
+button, select {
+    background: #333;
+    color: #fff;
+    border: 1px solid #555;
+    padding: 8px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+}
+button:hover {
+    background: #444;
+}
+.full-width {
+    width: 100%;
+}
+
+#caps-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+.cap-controls {
+    padding: 10px;
+    border: 1px solid #2a2a2a;
+    border-radius: 4px;
+    background: #222;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.cap-title {
+    margin: 0;
+    padding-bottom: 5px;
+    border-bottom: 1px solid #333;
+    font-size: 15px;
+}
+.control-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.value-display {
+    color: #aaa;
+    font-style: italic;
+}
+
+/* Utility class to hide elements */
+.hidden {
+    display: none !important;
+}
+/* Color control pallet */
+.popup { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; }
+.popup-content { background: #1a1a1a; padding: 20px; border-radius: 5px; width: 300px; }
+.color-boxes { display: flex; gap: 10px; }
+.color-set { flex: 1; }
+.color-item { display: flex; align-items: center; gap: 5px; margin: 5px 0; }

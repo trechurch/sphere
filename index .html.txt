@@ -466,75 +466,12 @@
       </div>
     </div>
     <div id="color-pallet-panel" class="modal hidden">
-  <div class="control-section">
-    <h3>Control Panel Theme</h3>
-
-    <fieldset>
-      <legend>Visual Styling</legend>
-
-      <div class="color-item">
-        <span>Panel Background</span>
-        <input type="color" class="newer" value="#1a1a1a" />
-        <input type="color" class="older" value="#1a1a1a" />
-      </div>
-
-      <div class="color-item">
-        <span>Panel Text</span>
-        <input type="color" class="newer" value="#ffffff" />
-        <input type="color" class="older" value="#ffffff" />
-      </div>
-
-      <div class="color-item">
-        <span>Panel Border</span>
-        <input type="color" class="newer" value="#444444" />
-        <input type="color" class="older" value="#444444" />
-      </div>
-
-      <div class="color-item">
-        <span>Button Background</span>
-        <input type="color" class="newer" value="#555555" />
-        <input type="color" class="older" value="#555555" />
-      </div>
-    </fieldset>
-
-    <fieldset>
-      <legend>Actions</legend>
-      <div class="control-row">
-        <button id="save-colors">Save</button>
-        <button id="discard-colors">Discard</button>
-        <button id="revert-colors">Revert</button>
-        <button id="randomize-colors">Randomize</button>
-      </div>
-    </fieldset>
-  </div>
-</div>
-     <!--
-    <div id="color-pallet-panel" class="modal hidden">
       <div class="control-section">
         <h3>Color Pallet</h3>
         <div class="control-row">
           <div class="control-label"><label>Controls</label></div>
           <div class="control-input">
             <button id="save-colors">Save</button>
-            <button id="discard-colors">Discard</button>
-            <button id="revert-colors">Revert</button>
-            <button id="randomize-colors">Randomize</button>
-          </div>
-        </div>
-        <div id="newer-colors">
-        Color items will be dynamically generated here 
-        </div>
-        <div id="older-colors" class="hidden"></div>
-      </div>
-    </div>
-    ---------------------------------------------------------------------------------
-      <div id="color-pallet-panel" class="modal hidden">
-      <div class="control-section">
-      <h3>Color Pallet</h3>
-      <div class="control-row">
-        <div class="control-label"><label>Controls</label></div>
-         <div class="control-input">
-           <button id="save-colors">Save</button>
             <button id="discard-colors">Discard</button>
             <button id="revert-colors">Revert</button>
             <button id="randomize-colors">Randomize</button>
@@ -564,8 +501,7 @@
         </div>
         <div id="older-colors" class="hidden"></div>
       </div>
-    </div>  -->
-
+    </div>
     <template id="cap-template">
       <div class="cap-ui">
         <div class="cap-title"></div>
