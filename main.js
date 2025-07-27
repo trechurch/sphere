@@ -95,6 +95,61 @@ scene.add(earthGroup);
 // Camera controls
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
+// 🌍 Coordinates
+function latLonToXY(lat, lon) {
+  const latRad = (lat * Math.PI) / 180;
+  const lonRad = (lon * Math.PI) / 180;
+  const x = sphereRadius * Math.cos(latRad) * Math.sin(lonRad);
+  const y = sphereRadius * Math.sin(latRad);
+  const z = sphereRadius * Math.cos(latRad) * Math.cos(lonRad);
+  return { x, y, z };
+}
+
+function xyToLatLon(x, y) {
+  const r = Math.sqrt(x * x + y * y);
+  const lat = Math.asin(y / sphereRadius) * (180 / Math.PI);
+  const lon =
+    Math.atan2(x, r * Math.cos(Math.asin(y / sphereRadius))) *
+    (180 / Math.PI);
+  return { lat, lon };
+}
+
+// 🧠 Cap data (⬆️ lift this from inside latLonToXY)
+const houstonCoords = latLonToXY(29.76, -95.36);
+let capArray = JSON.parse(localStorage.getItem("capArray")) || [
+  {
+    x: houstonCoords.x,
+    y: houstonCoords.y,
+    z: houstonCoords.z,
+    h: 0,
+    size: 2,
+    direction: "NW",
+    xScaler: 4,
+    yScaler: 4,
+    hScaler: 0,
+    sizeScaler: 2,
+    mesh: null,
+  },
+];
+let primaryCapIndex = 0;
+let secondaryCapIndex = 0;
+let deploymentType = "single-band";
+
+const xyScalers = [0.1, 0.3, 0.5, 0.7, 1];
+const sizeScalers = [0.05, 0.1, 0.2, 0.5, 1];
+const directions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
+const directionColors = {
+  N: 0xff0000,
+  NE: 0xffa500,
+  E: 0xffff00,
+  SE: 0x00ff00,
+  S: 0x00ffff,
+  SW: 0x0000ff,
+  W: 0x800080,
+  NW: 0xff00ff,
+};
+const xyScalerLabels = { "0.1x": 0, "0.3x": 1, "0.5x": 2, "0.7x": 3, "1x": 4 };
+const sizeScalerLabels = { Tiny: 0, Small: 1, Medium: 2, Large: 3, Huge: 4 };
 controls.dampingFactor = 0.05;
 controls.minDistance = sphereRadius + 100;
 controls.maxDistance =
@@ -154,56 +209,7 @@ function latLonToXY(lat, lon) {
   const z = sphereRadius * Math.cos(latRad) * Math.cos(lonRad);
   return { x, y, z };
 
-  function xyToLatLon(x, y) {
-    const r = Math.sqrt(x * x + y * y);
-    const lat = Math.asin(y / sphereRadius) * (180 / Math.PI);
-    const lon =
-      Math.atan2(x, r * Math.cos(Math.asin(y / sphereRadius))) *
-      (180 / Math.PI);
-    return { lat, lon };
-  }
-
-  // Cap data
-  const houstonCoords = latLonToXY(29.76, -95.36);
-  let capArray = JSON.parse(localStorage.getItem("capArray")) || [
-    {
-      x: houstonCoords.x,
-      y: houstonCoords.y,
-      z: houstonCoords.z,
-      h: 0,
-      size: 2,
-      direction: "NW",
-      xScaler: 4,
-      yScaler: 4,
-      hScaler: 0,
-      sizeScaler: 2,
-      mesh: null,
-    },
-  ];
-  let primaryCapIndex = 0,
-    secondaryCapIndex = 0;
-  let deploymentType = "single-band";
-  const xyScalers = [0.1, 0.3, 0.5, 0.7, 1];
-  const sizeScalers = [0.05, 0.1, 0.2, 0.5, 1];
-  const directions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
-  const directionColors = {
-    N: 0xff0000,
-    NE: 0xffa500,
-    E: 0xffff00,
-    SE: 0x00ff00,
-    S: 0x00ffff,
-    SW: 0x0000ff,
-    W: 0x800080,
-    NW: 0xff00ff,
-  };
-  const xyScalerLabels = {
-    "0.1x": 0,
-    "0.3x": 1,
-    "0.5x": 2,
-    "0.7x": 3,
-    "1x": 4,
-  };
-  const sizeScalerLabels = { Tiny: 0, Small: 1, Medium: 2, Large: 3, Huge: 4 };
+}
 
   // Cap stacking and merging
   function getStackedHeight(x, y, z) {
@@ -1066,7 +1072,6 @@ function latLonToXY(lat, lon) {
     controls.update();
     renderer.render(scene, camera);
   }
-}
 function renderHtmlCapsUI() {
   const capsContainer = document.getElementById("caps-container");
   const capTemplate = document.getElementById("cap-template");
