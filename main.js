@@ -11,7 +11,18 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 // Initialize core components
 const scene = new THREE.Scene();
 window.addEventListener("DOMContentLoaded", () => {
-  // safely bind events here
+  // safely bind events here scene.background = null;
+  resetCameraToDefault();
+  renderHtmlCapsUI();
+  renderCityKey();
+  capArray.forEach(createCap);
+  if (capArray[0]) focusCameraOnCap(capArray[0]);
+  updateCameraControls();
+  setInterval(
+    () => localStorage.setItem("capArray", JSON.stringify(capArray)),
+    30000
+  );
+  animate();
 });
 const camera = new THREE.PerspectiveCamera(
   75,
@@ -1224,16 +1235,5 @@ function onWindowResize() {
 window.addEventListener("resize", onWindowResize);
 
 window.addEventListener("DOMContentLoaded", () => {
-  scene.background = null;
-  resetCameraToDefault();
-  renderHtmlCapsUI();
-  renderCityKey();
-  capArray.forEach(createCap);
-  if (capArray[0]) focusCameraOnCap(capArray[0]);
-  updateCameraControls();
-  setInterval(
-    () => localStorage.setItem("capArray", JSON.stringify(capArray)),
-    30000
-  );
-  animate();
+ 
 });
