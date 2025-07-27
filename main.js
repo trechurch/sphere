@@ -152,7 +152,6 @@ function latLonToXY(lat, lon) {
   const y = sphereRadius * Math.sin(latRad);
   const z = sphereRadius * Math.cos(latRad) * Math.cos(lonRad);
   return { x, y, z };
-}
 
 function xyToLatLon(x, y) {
   const r = Math.sqrt(x * x + y * y);
@@ -1153,30 +1152,36 @@ window.addEventListener("DOMContentLoaded", () => {
     .addEventListener("change", updateCapView);
 });
 /* animate */
+/* animate */
 function animate() {
   requestAnimationFrame(animate);
   const elapsedTime = Date.now() * 0.0001;
 
+  // This block should ONLY control the moon's orbit
   if (settings.orbitMoon) {
     const moonOrbitRadius = 384400;
-    // Use a slower speed for a more realistic orbit effect
     const moonOrbitSpeed = elapsedTime * 0.05;
     moon.position.x = Math.cos(moonOrbitSpeed) * moonOrbitRadius;
     moon.position.z = Math.sin(moonOrbitSpeed) * moonOrbitRadius;
-    if (settings.rotateSphere) {
-      const rotationQuaternion = new THREE.Quaternion().setFromAxisAngle(
+  }
+
+  // This block handles the Earth's rotation independently
+  if (settings.rotateSphere) {
+    const rotationQuaternion = new THREE.Quaternion().setFromAxisAngle(
+      new THREE.Vector3(0, 1, 0),
+      elapsedTime * 0.25
+    );
+    earthMesh.quaternion.copy(rotationQuaternion);
+    cloudMesh.quaternion.copy(
+      new THREE.Quaternion().setFromAxisAngle(
         new THREE.Vector3(0, 1, 0),
-        elapsedTime * 0.25
-      );
-      earthMesh.quaternion.copy(rotationQuaternion);
-      cloudMesh.quaternion.copy(
-        new THREE.Quaternion().setFromAxisAngle(
-          new THREE.Vector3(0, 1, 0),
-          elapsedTime * 0.28
-        )
-      );
-    }
-    capArray.forEach(cap => {
+        elapsedTime * 0.28
+      )
+    );
+  }
+
+  // This block updates the caps every frame
+  capArray.forEach(cap => {
     if (cap.mesh) {
         const { lat, lon } = xyToLatLon(cap.x * xyScalers[cap.xScaler], cap.y * xyScalers[cap.yScaler]);
         let scaledHeight = cap.h * xyScalers[cap.hScaler] + getStackedHeight(cap.x, cap.y, cap.z);
@@ -1184,26 +1189,24 @@ function animate() {
             scaledHeight += tierSettings.multiTierSpacing * (cap.tierLevel || 0);
         }
 
-        // Create a clean, normalized direction vector
         const normalizedDirection = new THREE.Vector3(...Object.values(latLonToXY(lat, lon))).normalize();
 
-        // 1. Set the ROTATION first, using the normalized vector
         const upVector = new THREE.Vector3(0, 1, 0);
         const quaternion = new THREE.Quaternion().setFromUnitVectors(upVector, normalizedDirection);
         cap.mesh.quaternion.copy(quaternion);
 
-        // 2. NOW set the POSITION by scaling the direction vector
         cap.mesh.position.copy(normalizedDirection.multiplyScalar(sphereRadius + scaledHeight));
         
-        // Pulse scaling can remain as is
         const baseScale = deploymentType === 'multi-tier' ? tierSettings.multiTierLevels / 3 : 1;
         const pulseScale = 1 + 0.05 * Math.sin(Date.now() * 0.0001 * 2);
         cap.mesh.scale.set(baseScale * pulseScale, baseScale * pulseScale, baseScale * pulseScale);
     }
-});
-    controls.update();
-    renderer.render(scene, camera);
-  }
+  });
+
+  // These lines are essential and must run every frame
+  controls.update();
+  renderer.render(scene, camera);
+}
 }
 
 // Resize handler
