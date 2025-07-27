@@ -1,0 +1,28 @@
+<div id="capManagerUi" class="panel">
+  <h2>Sphere Cap Manager</h2>
+
+  <div class="cap-group">
+    <label for="capType">Cap Type:</label>
+    <select id="capType">
+      <option value="none">None</option>
+      <option value="directional">Directional</option>
+      <option value="radial">Radial</option>
+      <!-- Extendable -->
+    </select>
+  </div>
+
+  <div class="cap-group">
+    <label for="textureSelect">Texture:</label>
+    <select id="textureSelect">
+      <option value="default">Default</option>
+      <option value="custom">Custom...</option>
+    </select>
+  </div>
+
+  <div class="cap-group">
+    <label for="capRadius">Radius (%):</label>
+    <input type="range" id="capRadius" min="0" max="100" value="50" />
+  </div>
+
+  <div id="capFeedback" class="feedback">Awaiting cap input…</div>
+</div>
