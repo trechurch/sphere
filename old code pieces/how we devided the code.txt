@@ -1,0 +1,606 @@
+new ./main.js code [
+// main.js
+
+import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+import {
+  loadTextureConfig,
+  loadTextures,
+  showTextureSelectorUI,
+  saveTextureConfig
+} from './modules/textureManager.js';
+
+import {
+  initScene,
+  initEarthGroup,
+  initMoon,
+  initOrbitControls
+} from './modules/sceneSetup.js';
+
+import {
+  initDatGUI,
+  initHtmlUI,
+  bindColorPanel,
+  bindAdvancedPanel,
+  bindOpticsPanel,
+  syncWithSettings
+} from './modules/uiControls.js';
+
+import {
+  renderHtmlCapsUI,
+  updateCapSelectDropdown,
+  updateAndFocus,
+  focusCameraOnCap
+} from './modules/capUI.js';
+
+import {
+  createSphericalCap,
+  getStackedHeight
+} from './managers/capPlacementManager.js';
+
+import {
+  saveSettingsToFile,
+  loadSettingsFromFile
+} from './managers/fileManager.js';
+
+let settings = {};       // populate from config if available
+let capArray = [];       // your deployed caps live here
+let texturePaths = loadTextureConfig();
+let textures = await loadTextures(texturePaths);
+
+if (!textures || textures.useDefaults) {
+  showTextureSelectorUI(async (selectedPaths) => {
+    saveTextureConfig(selectedPaths);
+    textures = await loadTextures(selectedPaths);
+    bootApp(textures);
+  });
+} else {
+  bootApp(textures);
+}
+
+function bootApp(textures) {
+  const { scene, camera, renderer } = initScene();
+  const controls = initOrbitControls(camera, renderer);
+  const earthGroup = initEarthGroup(textures);
+  const moon = initMoon(textures);
+
+  scene.add(earthGroup, moon);
+
+  initDatGUI(settings, scene, camera, controls);
+  initHtmlUI(settings);
+  bindColorPanel(settings);
+  bindAdvancedPanel(settings);
+  bindOpticsPanel(settings);
+  syncWithSettings(settings);
+
+  // Initial cap rendering and UI population
+  renderHtmlCapsUI(capArray, settings);
+  updateCapSelectDropdown(capArray);
+
+  // Example: Deploy a new cap
+  const cap = { id: Date.now(), mesh: null };
+  createSphericalCap(cap, {
+    radius: 5,
+    sizeScalers: { width: 1, height: 1 },
+    deploymentType: 'standard',
+    directionColors: {},
+    tierSettings: {},
+    xyScalers: {},
+    getStackedHeight,
+    earthGroup,
+    debug: settings.enableDebugLogging
+  });
+  capArray.push(cap);
+  renderHtmlCapsUI(capArray, settings);
+
+  animate();
+
+  function animate() {
+    requestAnimationFrame(animate);
+    controls.update();
+    renderer.render(scene, camera);
+  }
+}]  ./managers/new capPlacementManager.js code [
+// capPlacementManager.js
+// Handles UI bindings and state updates for cap placement
+
+import { capArray, createDefaultCap } from '../shared/capArray.js';
+// Outside any class
+export function getStackedHeight(capArray, direction) {
+  const sameDirectionCaps = capArray.filter(cap => cap.direction === direction);
+  return sameDirectionCaps.length * 2.5; // example spacing
+}
+export class capPlacementManager {
+  constructor() {
+    this.primaryIndex = null;
+    this.secondaryIndex = null;
+    this.uiElements = {};
+  }
+
+  initUI(containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) {
+      console.warn(`capPlacementManager: Missing container #${containerId}`);
+      return;
+    }
+
+    // Store references to UI controls
+    this.uiElements = {
+      latInput: container.querySelector('#latitude-input'),
+      lonInput: container.querySelector('#longitude-input'),
+      altInput: container.querySelector('#altitude-input'),
+      sizeSelect: container.querySelector('#size-select'),
+      placeBtn: container.querySelector('#click-to-place'),
+    };
+
+    // Bind listeners
+    this.uiElements.placeBtn.addEventListener('click', () => {
+      this.commitPlacement();
+    });
+  }
+
+  commitPlacement() {
+    const capData = {
+      latitude: parseFloat(this.uiElements.latInput.value),
+      longitude: parseFloat(this.uiElements.lonInput.value),
+      altitude: parseFloat(this.uiElements.altInput.value),
+      size: this.uiElements.sizeSelect.value,
+      scaler: {
+        lat: 1,
+        lon: 1,
+        alt: 1,
+        size: 1,
+      },
+      id: `cap-${Date.now()}`,
+      metadata: {
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+    };
+
+    capArray.push(capData);
+    this.primaryIndex = capArray.length - 1;
+    console.log(`New cap placed:`, capData);
+    this.persistState();
+  }
+
+  loadCap(index) {
+    if (!capArray[index]) return;
+    const cap = capArray[index];
+    this.uiElements.latInput.value = cap.latitude;
+    this.uiElements.lonInput.value = cap.longitude;
+    this.uiElements.altInput.value = cap.altitude;
+    this.uiElements.sizeSelect.value = cap.size;
+    this.primaryIndex = index;
+  }
+
+  deleteCap(index) {
+    if (!capArray[index]) return;
+    capArray.splice(index, 1);
+    console.log(`Cap deleted at index ${index}`);
+    this.primaryIndex = null;
+    this.persistState();
+  }
+
+  persistState() {
+    // Future-proof: Hook into FileManager or localStorage
+    // For now, just a console log to confirm persist trigger
+    console.log(`Cap array state updated:`, JSON.stringify(capArray, null, 2));
+  }
+}
+import * as THREE from "three";
+
+// Create a spherical, surface-hugging cap
+export function createSphericalCap(cap, {
+  radius,
+  sizeScalers,
+  deploymentType,
+  directionColors,
+  tierSettings,
+  getStackedHeight,
+  earthGroup,
+  xyScalers,
+  debug = false,
+}) {
+  const capSize = deploymentType === "multi-tier"
+    ? cap.size * (tierSettings.multiTierLevels / 3)
+    : cap.size;
+
+  const capExtent = 500 * capSize * sizeScalers[cap.sizeScaler];
+  const capAngle = Math.min(capExtent / radius, Math.PI / 2);
+
+  const capGeo = new THREE.SphereGeometry(
+    radius, 32, 32,
+    0, Math.PI * 2,
+    0, capAngle
+  );
+  const capMat = new THREE.MeshBasicMaterial({
+    color: directionColors[cap.direction] || 0xff0000,
+    transparent: true,
+    opacity: deploymentType === "single-band"
+      ? tierSettings.singleBandIntensity / 100
+      : 0.9,
+    side: THREE.DoubleSide,
+  });
+  const capMeshMain = new THREE.Mesh(capGeo, capMat);
+
+  const { lat, lon } = xyToLatLon(cap.x, cap.y);
+  const positionVector = new THREE.Vector3(...Object.values(latLonToXY(lat, lon))).normalize();
+
+  let scaledHeight = cap.h * xyScalers[cap.hScaler] + getStackedHeight(cap.x, cap.y, cap.z);
+  if (deploymentType === "multi-tier") {
+    scaledHeight += tierSettings.multiTierSpacing * (cap.tierLevel || 0);
+  }
+
+  const capMesh = new THREE.Group();
+  capMesh.position.copy(positionVector.multiplyScalar(radius + scaledHeight));
+  capMesh.quaternion.copy(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), positionVector));
+  capMesh.add(capMeshMain);
+  capMesh.userData = {
+    size: capExtent,
+    originalPosition: { x: cap.x, y: cap.y, h: cap.h, z: cap.z },
+  };
+
+  cap.mesh = capMesh;
+  earthGroup.add(capMesh);
+  if (debug) console.log("✅ Created spherical cap:", cap);
+}] new ./modules/capUI.js code [
+// modules/capUI.js
+export function renderHtmlCapsUI(capArray, settings) {
+  const container = document.getElementById('cap-panel');
+  container.innerHTML = ''; // Clear
+  capArray.forEach(cap => {
+    const el = document.createElement('div');
+    el.className = 'cap-item';
+    el.textContent = `Cap ${cap.id || 'unnamed'}`;
+    container.appendChild(el);
+  });
+}
+
+export function updateCapSelectDropdown(capArray) {
+  const dropdown = document.getElementById('capSelect');
+  dropdown.innerHTML = '';
+  capArray.forEach(cap => {
+    const opt = document.createElement('option');
+    opt.value = cap.id;
+    opt.text = `Cap ${cap.id}`;
+    dropdown.appendChild(opt);
+  });
+}
+
+export function updateAndFocus(cap) {
+  // Update UI fields and focus camera
+}
+
+export function focusCameraOnCap(cap, camera, controls) {
+  const pos = cap.mesh?.position || { x: 0, y: 0, z: 0 };
+  camera.position.set(pos.x + 5, pos.y + 5, pos.z + 5);
+  controls.target.set(pos.x, pos.y, pos.z);
+  controls.update();
+}] new ./modules/uiControls.js code [
+// modules/uiControls.js
+export function initDatGUI(settings, scene, camera, controls) {
+  const gui = new dat.GUI();
+  gui.add(settings, "enableDebugLogging").name("Debug Logs");
+  // 🌍 Earth controls
+  const earthFolder = gui.addFolder("Earth");
+  earthFolder
+    .addColor(settings, "backgroundColor")
+    .name("Background")
+    .onChange((val) => (scene.background = new THREE.Color(val)));
+  earthFolder
+    .add(settings, "rotateSphere")
+    .name("Rotate Earth")
+    .onChange((v) => (settings.rotateSphere = v));
+
+  // 🧠 Cap controls
+  const capFolder = gui.addFolder("Cap Behavior");
+  capFolder
+    .add(settings, "pickCap")
+    .name("Pick Cap")
+    .onChange((v) => (settings.pickCap = v));
+  capFolder.add(settings, "selectedCapIndex", 0, 10).step(1).name("Cap Index");
+
+  // 🔍 Camera controls
+  const cameraFolder = gui.addFolder("Camera");
+  cameraFolder
+    .add(settings, "useOrthographic")
+    .name("Use Orthographic")
+    .onChange(() => settings.toggleCamera());
+  cameraFolder.add(settings, "resetCamera").name("Reset");
+
+  // 🧪 Debug controls
+  const debugFolder = gui.addFolder("Debug");
+  debugFolder.add(settings, "enableDebugLogging").name("Debug Logs");
+
+  gui.close(); // collapsed by default
+}
+
+export function initHtmlUI(settings) {
+  document.getElementById("resetView").addEventListener("click", () => {
+    settings.resetCamera = true;
+  });
+}
+
+export function bindColorPanel(settings) {
+  // Hook up color inputs (cap, tier, lines, etc.)
+}
+
+export function bindAdvancedPanel(settings) {
+  // Attach advanced deployment settings (rotation, layering, etc.)
+}
+
+export function bindOpticsPanel(settings) {
+  // Optics, lighting, or visibility toggles
+}
+
+export function syncWithSettings(settings) {
+  // Read settings object and update GUI + HTML
+}
+] new ./modules/sceneSetup.js code [
+// modules/sceneSetup.js
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import * as THREE from 'three';
+
+export function initScene() {
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 500);
+  camera.position.set(0, 5, 15);
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  document.body.appendChild(renderer.domElement);
+  return { scene, camera, renderer };
+}
+
+export function initEarthGroup(textures) {
+  const material = textures.earthMaterial || new THREE.MeshBasicMaterial({ wireframe: true });
+  const geometry = new THREE.SphereGeometry(5, 64, 64);
+  const earthMesh = new THREE.Mesh(geometry, material);
+  const group = new THREE.Group();
+  group.add(earthMesh);
+  return group;
+}
+
+export function initMoon(textures) {
+  const material = textures.moonMaterial || new THREE.MeshBasicMaterial({ wireframe: true });
+  const geometry = new THREE.SphereGeometry(1, 32, 32);
+  return new THREE.Mesh(geometry, material);
+}
+
+export function initOrbitControls(camera, renderer) {
+  const controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  return controls;
+}] new ./managers/textureManager.js code [
+// modules/textureManager.js
+import * as THREE from 'three';
+
+export function loadTextureConfig() {
+  try {
+    const config = JSON.parse(localStorage.getItem('sphere-textures'));
+    return config || { useDefaults: true };
+  } catch {
+    return { useDefaults: true };
+  }
+}
+
+export async function loadTextures(paths) {
+  const loader = new THREE.TextureLoader();
+  const output = {};
+  if (!paths || paths.useDefaults) {
+    output.earthMaterial = new THREE.MeshBasicMaterial({ wireframe: true });
+    output.moonMaterial = new THREE.MeshBasicMaterial({ wireframe: true });
+    return output;
+  }
+  if (paths.earthMap) output.earthMaterial = new THREE.MeshStandardMaterial({ map: await loader.loadAsync(paths.earthMap) });
+  if (paths.moonMap) output.moonMaterial = new THREE.MeshStandardMaterial({ map: await loader.loadAsync(paths.moonMap) });
+  return output;
+}
+
+export function saveTextureConfig(paths) {
+  localStorage.setItem('sphere-textures', JSON.stringify(paths));
+}
+
+export function showTextureSelectorUI(onConfirm) {
+  // Create modal / popup with inputs for texture selection
+  // Call onConfirm({ earthMap, bumpMap, moonMap, starMap, ... }) when user confirms
+}] new ./shared/capArray.js [
+// capArray.js
+// Shared data array for cap placement system
+
+export const capArray = [];
+
+export const createDefaultCap = () => ({
+  id: `cap-${Date.now()}`, // Unique timestamp-based ID
+  latitude: 0,
+  longitude: 0,
+  altitude: 1000,
+  size: "City", // Options: Neighborhood, Town, City, State, Continent, Planet
+  scaler: {
+    lat: 1,
+    lon: 1,
+    alt: 1,
+    size: 1,
+  },
+  metadata: {
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+});]  ./styles/capManagerUI.css [
+#capManagerUi.panel {
+  background: #1c1c1c;
+  color: #eee;
+  padding: 16px;
+  border-radius: 8px;
+  width: 280px;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+#capManagerUi h2 {
+  margin-bottom: 12px;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.cap-group {
+  margin-bottom: 14px;
+  display: flex;
+  flex-direction: column;
+}
+
+.cap-group label {
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+
+.cap-group select,
+.cap-group input[type="range"] {
+  padding: 6px;
+  background: #292929;
+  border: none;
+  color: #fff;
+  border-radius: 4px;
+}
+
+.feedback {
+  font-size: 13px;
+  color: #89c4ff;
+  margin-top: 8px;
+}] 
+
+also have ./managers/colorPickerManager.js, #capManagerUi.panel {
+  background: #1c1c1c;
+  color: #eee;
+  padding: 16px;
+  border-radius: 8px;
+  width: 280px;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+#capManagerUi h2 {
+  margin-bottom: 12px;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.cap-group {
+  margin-bottom: 14px;
+  display: flex;
+  flex-direction: column;
+}
+
+.cap-group label {
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+
+.cap-group select,
+.cap-group input[type="range"] {
+  padding: 6px;
+  background: #292929;
+  border: none;
+  color: #fff;
+  border-radius: 4px;
+}
+
+.feedback {
+  font-size: 13px;
+  color: #89c4ff;
+  margin-top: 8px;
+}
+
+] new ./managers/capManagerUi.html    [ 
+<!--== Sphere Cap Manager UI ===  
+This file defines the user interface for managing sphere caps in the Sphere application. 
+It allows users to select cap types, textures, and adjust radius settings.-->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sphere Cap Manager</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+  <div id="app"></div>
+
+</body>
+
+</html>
+<script src="main.js"></script>
+<div id="capManagerUi" class="panel">
+  <div class="cap-group">
+    <label for="capType">Cap Type:</label>
+    <select id="capType">
+      <option value="none">None</option>
+      <option value="directional">Directional</option>
+      <option value="radial">Radial</option>
+      <!-- Extendable -->
+    </select>
+  </div>
+
+     <!--<div class="cap-group">
+    <label for="capColor">Color:</label>
+    <input type="color" id="capColor" value="#ffffff" /> -->
+    
+  <div class="cap-group">
+    <label for="textureSelect">Texture:</label>
+    <select id="textureSelect">
+      <option value="default">Default</option>
+      <option value="custom">Custom...</option>
+    </select>
+  </div>
+     <!--<div class="cap-group">
+    <label for="textureInput" id="textureInputLabel" style="display: none;">Custom Texture:</label>
+    <input type="file" id="textureInput" accept="image/*" style="display: none;" /> -->
+
+  <div class="cap-group">
+    <label for="capRadius">Radius (%):</label>
+    <input type="range" id="capRadius" min="0" max="100" value="50" />
+  </div>
+     <!--<div class="cap-group">
+    <button id="addCapButton">Add Cap</button>
+    <button id="removeCapButton">Remove Cap</button> -->
+
+  <div id="capFeedback" class="feedback">Awaiting cap input…</div>
+
+<!--<div class="cap-group">
+      <button id="saveSettingsButton">Save Settings</button>
+      <button id="loadSettingsButton">Load Settings</button>  
+      <button id="resetSettingsButton">Reset Settings</button>  
+      <button id="applySettingsButton">Apply Settings</button> 
+      <button id="saveTextureConfigButton">Save Texture Config</button> 
+      <button id="loadTextureConfigButton">Load Texture Config</button>
+      <button id="showTextureSelectorButton">Show Texture Selector</button> --> 
+  </div>
+
+
+] new ./shared/capArray.js    [ 
+// capArray.js
+// Shared data array for cap placement system
+
+export const capArray = [];
+
+export const createDefaultCap = () => ({
+  id: `cap-${Date.now()}`, // Unique timestamp-based ID
+  latitude: 0,
+  longitude: 0,
+  altitude: 1000,
+  size: "City", // Options: Neighborhood, Town, City, State, Continent, Planet
+  scaler: {
+    lat: 1,
+    lon: 1,
+    alt: 1,
+    size: 1,
+  },
+  metadata: {
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+});
+
+
+]also have ./managers/textureManager.js, 

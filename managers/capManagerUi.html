@@ -1,6 +1,24 @@
-<div id="capManagerUi" class="panel">
-  <h2>Sphere Cap Manager</h2>
+<!--== Sphere Cap Manager UI ===  
+This file defines the user interface for managing sphere caps in the Sphere application. 
+It allows users to select cap types, textures, and adjust radius settings.-->
+<!DOCTYPE html>
+<html lang="en">
 
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sphere Cap Manager</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+  <div id="app"></div>
+
+</body>
+
+</html>
+<script src="main.js"></script>
+<div id="capManagerUi" class="panel">
   <div class="cap-group">
     <label for="capType">Cap Type:</label>
     <select id="capType">
@@ -11,6 +29,10 @@
     </select>
   </div>
 
+     <!--<div class="cap-group">
+    <label for="capColor">Color:</label>
+    <input type="color" id="capColor" value="#ffffff" /> -->
+    
   <div class="cap-group">
     <label for="textureSelect">Texture:</label>
     <select id="textureSelect">
@@ -18,11 +40,26 @@
       <option value="custom">Custom...</option>
     </select>
   </div>
+     <!--<div class="cap-group">
+    <label for="textureInput" id="textureInputLabel" style="display: none;">Custom Texture:</label>
+    <input type="file" id="textureInput" accept="image/*" style="display: none;" /> -->
 
   <div class="cap-group">
     <label for="capRadius">Radius (%):</label>
     <input type="range" id="capRadius" min="0" max="100" value="50" />
   </div>
+     <!--<div class="cap-group">
+    <button id="addCapButton">Add Cap</button>
+    <button id="removeCapButton">Remove Cap</button> -->
 
   <div id="capFeedback" class="feedback">Awaiting cap input…</div>
-</div>
+
+<!--<div class="cap-group">
+      <button id="saveSettingsButton">Save Settings</button>
+      <button id="loadSettingsButton">Load Settings</button>  
+      <button id="resetSettingsButton">Reset Settings</button>  
+      <button id="applySettingsButton">Apply Settings</button> 
+      <button id="saveTextureConfigButton">Save Texture Config</button> 
+      <button id="loadTextureConfigButton">Load Texture Config</button>
+      <button id="showTextureSelectorButton">Show Texture Selector</button> --> 
+  </div>

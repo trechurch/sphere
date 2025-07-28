@@ -1,4 +1,4 @@
-// modules/textureManager.js
+// managers/textureManager.js
 import * as THREE from 'three';
 
 export function loadTextureConfig() {

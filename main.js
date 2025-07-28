@@ -7,15 +7,15 @@ import {
   loadTextureConfig,
   loadTextures,
   showTextureSelectorUI,
-  saveTextureConfig
-} from './modules/textureManager.js';
+  saveTextureConfig,
+} from "./managers/textureManager.js";
 
 import {
   initScene,
   initEarthGroup,
   initMoon,
-  initOrbitControls
-} from './modules/sceneSetup.js';
+  initOrbitControls,
+} from "./modules/sceneSetup.js";
 
 import {
   initDatGUI,
@@ -23,28 +23,37 @@ import {
   bindColorPanel,
   bindAdvancedPanel,
   bindOpticsPanel,
-  syncWithSettings
-} from './modules/uiControls.js';
+  syncWithSettings,
+} from "./modules/uiControls.js";
 
 import {
   renderHtmlCapsUI,
   updateCapSelectDropdown,
   updateAndFocus,
-  focusCameraOnCap
-} from './modules/capUI.js';
+  focusCameraOnCap,
+} from "./modules/capUi.js";
 
 import {
   createSphericalCap,
-  getStackedHeight
-} from './managers/capPlacementManager.js';
+  getStackedHeight,
+} from "./managers/capPlacementManager.js";
 
 import {
   saveSettingsToFile,
-  loadSettingsFromFile
-} from './modules/fileManager.js';
+  loadSettingsFromFile,
+} from "./managers/fileManager.js";
 
-let settings = {};       // populate from config if available
-let capArray = [];       // your deployed caps live here
+let settings = {
+  enableDebugLogging: false,
+  rotateSphere: false,
+  pickCap: false,
+  selectedCapIndex: 0,
+  useOrthographic: false,
+  resetCamera: false,
+  // ...any other required flags
+};
+// populate from config if available
+let capArray = []; // your deployed caps live here
 let texturePaths = loadTextureConfig();
 let textures = await loadTextures(texturePaths);
 
@@ -78,18 +87,40 @@ function bootApp(textures) {
   updateCapSelectDropdown(capArray);
 
   // Example: Deploy a new cap
-  const cap = { id: Date.now(), mesh: null };
-  createSphericalCap(cap, {
-    radius: 5,
-    sizeScalers: { width: 1, height: 1 },
-    deploymentType: 'standard',
-    directionColors: {},
-    tierSettings: {},
-    xyScalers: {},
-    getStackedHeight,
-    earthGroup,
-    debug: settings.enableDebugLogging
-  });
+  const cap = {
+    id: Date.now(),
+    mesh: null,
+    size: 1, // ← Required by sizeScalers["scaleKey"]
+    sizeScaler: "size", // ← Matches sizeScalers["size"]
+    x: 0,
+    y: 0,
+    h: 1,
+    z: 0, // ← Positioning keys for stacking
+    hScaler: "alt", // ← Matches xyScalers["alt"]
+    direction: "north", // ← Optional: affects color
+    tierLevel: 0, // ← Needed for multi-tier spacing
+  };
+  const directionColors = { north: 0x00ff00 };
+  const tierSettings = {
+    multiTierLevels: 3,
+    multiTierSpacing: 0.5,
+    singleBandIntensity: 80,
+  };
+  const sizeScalers = { size: 1 };
+  const xyScalers = { alt: 1 };
+
+createSphericalCap(cap, {
+  radius: 5,
+  sizeScalers,
+  deploymentType: 'multi-tier',
+  directionColors,
+  tierSettings,
+  xyScalers,
+  getStackedHeight,
+  earthGroup,
+  debug: settings.enableDebugLogging,
+});
+
   capArray.push(cap);
   renderHtmlCapsUI(capArray, settings);
 

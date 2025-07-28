@@ -1,4 +1,4 @@
-// colorPickerManager.js
+// managers/colorPickerManager.js
 
 export function initColorPickerManager(settings) {
   setupUIPaletteBindings(settings);

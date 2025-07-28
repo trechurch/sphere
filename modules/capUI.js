@@ -1,4 +1,4 @@
-// modules/capUI.js
+// modules/capUi.js
 export function renderHtmlCapsUI(capArray, settings) {
   const container = document.getElementById('cap-panel');
   container.innerHTML = ''; // Clear

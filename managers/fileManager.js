@@ -1,4 +1,4 @@
-// modules/fileManager.js
+// managers/fileManager.js
 export function saveSettingsToFile(settings, capArray, texturePaths) {
   const data = {
     settings,
