@@ -36,7 +36,7 @@ import {
 import {
   createSphericalCap,
   getStackedHeight
-} from './modules/capManager.js';
+} from './managers/capPlacementManager.js';
 
 import {
   saveSettingsToFile,

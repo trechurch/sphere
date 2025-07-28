@@ -2,8 +2,12 @@
 // Handles UI bindings and state updates for cap placement
 
 import { capArray, createDefaultCap } from '../shared/capArray.js';
-
-export class CapPlacementManager {
+// Outside any class
+export function getStackedHeight(capArray, direction) {
+  const sameDirectionCaps = capArray.filter(cap => cap.direction === direction);
+  return sameDirectionCaps.length * 2.5; // example spacing
+}
+export class capPlacementManager {
   constructor() {
     this.primaryIndex = null;
     this.secondaryIndex = null;
@@ -13,7 +17,7 @@ export class CapPlacementManager {
   initUI(containerId) {
     const container = document.getElementById(containerId);
     if (!container) {
-      console.warn(`CapPlacementManager: Missing container #${containerId}`);
+      console.warn(`capPlacementManager: Missing container #${containerId}`);
       return;
     }
 

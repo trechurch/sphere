@@ -22,15 +22,6 @@ canvas {
   --panel-border-color: #444;
   --button-bg-color: #555;
 }
-.cap-panel {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  width: 260px;
-  padding: 14px;
-  background: #1e1e1e;
-  border: 1px solid #444;
-  border-radius
 
 .controls {
   background: var(--panel-bg-color);

@@ -1,0 +1,40 @@
+#capManagerUi.panel {
+  background: #1c1c1c;
+  color: #eee;
+  padding: 16px;
+  border-radius: 8px;
+  width: 280px;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+#capManagerUi h2 {
+  margin-bottom: 12px;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.cap-group {
+  margin-bottom: 14px;
+  display: flex;
+  flex-direction: column;
+}
+
+.cap-group label {
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+
+.cap-group select,
+.cap-group input[type="range"] {
+  padding: 6px;
+  background: #292929;
+  border: none;
+  color: #fff;
+  border-radius: 4px;
+}
+
+.feedback {
+  font-size: 13px;
+  color: #89c4ff;
+  margin-top: 8px;
+}
