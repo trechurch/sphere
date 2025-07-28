@@ -50,6 +50,7 @@ let settings = {
   selectedCapIndex: 0,
   useOrthographic: false,
   resetCamera: false,
+    backgroundColor: '#000000',
   // ...any other required flags
 };
 // populate from config if available

@@ -1,4 +1,31 @@
 // modules/uiControls.js
+
+// === DOM Element References ===
+const resetCameraBtn = document.getElementById('reset-camera-btn');
+const resetViewBtn = document.getElementById('reset-view');
+// Add more UI elements here as needed
+
+// === Event Bindings ===
+if (resetCameraBtn) {
+  resetCameraBtn.addEventListener('click', () => {
+    settings.resetCamera = true;
+  });
+}
+
+if (resetViewBtn) {
+  resetViewBtn.addEventListener('click', () => {
+    settings.resetCamera = true;
+  });
+}
+
+// === Exported UI Functions ===
+export function initHtmlUI(settings) {
+  // Initialization logic
+}
+
+export function updateUIControls(data) {
+  // Sync logic
+}
 export function initDatGUI(settings, scene, camera, controls) {
   const gui = new dat.GUI();
   gui.add(settings, "enableDebugLogging").name("Debug Logs");
