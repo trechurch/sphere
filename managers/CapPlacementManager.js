@@ -7,12 +7,13 @@ addCap(createDefaultCap());  // Adds a default cap
 const heightOffset = getStackedHeight(getCapArray()); // Reads the array safely
 
 
-capArray.push(createDefaultCap());
+//capArray.push(createDefaultCap());
 // Conversion utility
 function xyToLatLon(x, y) {
   // Replace this with real projection math when ready
   return { lat: y, lon: x };
 }
+
 
 // Outside any class
 export function getStackedHeight(capArray, direction) {

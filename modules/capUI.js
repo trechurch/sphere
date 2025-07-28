@@ -10,23 +10,17 @@ return `<div>Rendered Cap HTML</div>`;
 
 const container = document.getElementById('caps-container');
 
-if (container) {
-  const settings = {
-  tier: 'alpha',
-  direction: 'north',
-  debug: true,
-  id: 'cap-001',
-  // Add whatever properties are expected in the actual implementation
-};
+//if (container) { const settings = { tier: 'alpha', direction: 'north', debug: true, id: 'cap-001',};container.innerHTML = renderCapHtml(settings);} else {console.error('caps-container is null. UI cannot render.');}
 
-
-
-container.innerHTML = renderCapHtml(settings);
-
-} else {
-
-console.error('caps-container is null. UI cannot render.');
-
+// This function can now be called when you're ready
+export function initializeCapUI(capArray, settings) {
+  const container = document.getElementById('caps-container');
+  if (!container) {
+    console.error('caps-container is null. UI cannot render.');
+    return;
+  }
+  renderHtmlCapsUI(capArray, settings);
+  updateCapSelectDropdown(capArray);
 }
 
 export function renderHtmlCapsUI(capArray, settings) {

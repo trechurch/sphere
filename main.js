@@ -29,6 +29,7 @@ import {
 import {
   renderHtmlCapsUI,
   updateCapSelectDropdown,
+  initializeCapUI,
   updateAndFocus,
   focusCameraOnCap,
 } from "./modules/capUi.js";
@@ -50,41 +51,41 @@ let settings = {
   selectedCapIndex: 0,
   useOrthographic: false,
   resetCamera: false,
-  backgroundColor: '#000000',
+  backgroundColor: "#000000",
   // ...any other required flags
 };
 
 // Debug function wrapper for consistency
 function debugLog(...args) {
   if (settings.enableDebugLogging) {
-    console.log('[Debug]', ...args);
+    console.log("[Debug]", ...args);
   }
 }
 
-function xyToLatLon(x, y) {
-  debugLog('xyToLatLon called with:', x, y);
-  // conversion logic here
-  return { lat: 0, lon: 0 }; // Placeholder return for example
-}
+//function xyToLatLon(x, y) {
+// debugLog('xyToLatLon called with:', x, y);
+// conversion logic here
+//return { lat: 0, lon: 0 }; // Placeholder return for example
+//}
 
-if (typeof xyToLatLon === 'function') {
-  const x = 100, y = 200; // Ensure these are defined or passed in
-  const latLon = xyToLatLon(x, y);
-  debugLog('LatLon result:', latLon);
-} else {
-  console.warn('xyToLatLon not defined');
-}
+//if (typeof xyToLatLon === 'function') {
+//  const x = 100, y = 200; // Ensure these are defined or passed in
+//  const latLon = xyToLatLon(x, y);
+//  debugLog('LatLon result:', latLon);
+//} else {
+//  console.warn('xyToLatLon not defined');
+//}
 
 // Populate from config if available
 let capArray = []; // your deployed caps live here
 
-debugLog('Attempting to load texture config...');
+debugLog("Attempting to load texture config...");
 let texturePaths = loadTextureConfig();
-debugLog('Texture paths:', texturePaths);
+debugLog("Texture paths:", texturePaths);
 
-debugLog('Loading textures...');
+debugLog("Loading textures...");
 let textures = await loadTextures(texturePaths);
-debugLog('Textures loaded:', textures);
+debugLog("Textures loaded:", textures);
 if (!textures || textures.useDefaults) {
   showTextureSelectorUI(async (selectedPaths) => {
     saveTextureConfig(selectedPaths);
@@ -105,6 +106,7 @@ function bootApp(textures) {
 
   initDatGUI(settings, scene, camera, controls);
   initHtmlUI(settings);
+  initializeCapUI(capArray, settings);
   bindColorPanel(settings);
   bindAdvancedPanel(settings);
   bindOpticsPanel(settings);
@@ -137,17 +139,17 @@ function bootApp(textures) {
   const sizeScalers = { size: 1 };
   const xyScalers = { alt: 1 };
 
-createSphericalCap(cap, {
-  radius: 5,
-  sizeScalers,
-  deploymentType: 'multi-tier',
-  directionColors,
-  tierSettings,
-  xyScalers,
-  getStackedHeight,
-  earthGroup,
-  debug: settings.enableDebugLogging,
-});
+  createSphericalCap(cap, {
+    radius: 5,
+    sizeScalers,
+    deploymentType: "multi-tier",
+    directionColors,
+    tierSettings,
+    xyScalers,
+    getStackedHeight,
+    earthGroup,
+    debug: settings.enableDebugLogging,
+  });
 
   capArray.push(cap);
   renderHtmlCapsUI(capArray, settings);
