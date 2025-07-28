@@ -44,20 +44,47 @@ import {
 } from "./managers/fileManager.js";
 
 let settings = {
-  enableDebugLogging: false,
+  enableDebugLogging: true, // Flip to true for active logging
   rotateSphere: false,
   pickCap: false,
   selectedCapIndex: 0,
   useOrthographic: false,
   resetCamera: false,
-    backgroundColor: '#000000',
+  backgroundColor: '#000000',
   // ...any other required flags
 };
-// populate from config if available
-let capArray = []; // your deployed caps live here
-let texturePaths = loadTextureConfig();
-let textures = await loadTextures(texturePaths);
 
+// Debug function wrapper for consistency
+function debugLog(...args) {
+  if (settings.enableDebugLogging) {
+    console.log('[Debug]', ...args);
+  }
+}
+
+function xyToLatLon(x, y) {
+  debugLog('xyToLatLon called with:', x, y);
+  // conversion logic here
+  return { lat: 0, lon: 0 }; // Placeholder return for example
+}
+
+if (typeof xyToLatLon === 'function') {
+  const x = 100, y = 200; // Ensure these are defined or passed in
+  const latLon = xyToLatLon(x, y);
+  debugLog('LatLon result:', latLon);
+} else {
+  console.warn('xyToLatLon not defined');
+}
+
+// Populate from config if available
+let capArray = []; // your deployed caps live here
+
+debugLog('Attempting to load texture config...');
+let texturePaths = loadTextureConfig();
+debugLog('Texture paths:', texturePaths);
+
+debugLog('Loading textures...');
+let textures = await loadTextures(texturePaths);
+debugLog('Textures loaded:', textures);
 if (!textures || textures.useDefaults) {
   showTextureSelectorUI(async (selectedPaths) => {
     saveTextureConfig(selectedPaths);

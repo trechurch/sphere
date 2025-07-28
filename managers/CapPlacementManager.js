@@ -1,10 +1,22 @@
 // managers.capPlacementManager.js
 // Handles UI bindings and state updates for cap placement
 
-import { capArray, createDefaultCap } from '../shared/capArray.js';
+import { getCapArray, addCap, createDefaultCap } from '../shared/capArray.js';
+
+addCap(createDefaultCap());  // Adds a default cap
+const heightOffset = getStackedHeight(getCapArray()); // Reads the array safely
+
+
+capArray.push(createDefaultCap());
+// Conversion utility
+function xyToLatLon(x, y) {
+  // Replace this with real projection math when ready
+  return { lat: y, lon: x };
+}
+
 // Outside any class
 export function getStackedHeight(capArray, direction) {
-  const sameDirectionCaps = capArray.filter(cap => cap.direction === direction);
+  const sameDirectionCaps = getCapArray().filter(cap => cap.direction === direction);
   return sameDirectionCaps.length * 2.5; // example spacing
 }
 export class capPlacementManager {
@@ -84,6 +96,19 @@ export class capPlacementManager {
     // For now, just a console log to confirm persist trigger
     console.log(`Cap array state updated:`, JSON.stringify(capArray, null, 2));
   }
+}
+const cap = {
+  x: 100,
+  y: 50,
+  h: 20,
+  z: 1,
+  hScaler: "default",
+  tierLevel: 2
+};
+const { lat, lon } = xyToLatLon(cap.x, cap.y);
+function latLonToXY(lat, lon) {
+  // Stub logic—use real projection here if needed
+  return { x: lon, y: lat };
 }
 import * as THREE from "three";
 
